@@ -20,7 +20,7 @@ npm install
 # start a full development build. (uses threads to start running everything)
 make full_watch
 
-# will compile with tinygo, (way slower compile times)
+# will compile with tinygo, (way slower compile times) (also has garbage collector issues)
 make GO_COMPILER=tinygo full_watch
 ```
 
