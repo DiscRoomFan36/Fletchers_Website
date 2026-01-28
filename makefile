@@ -34,7 +34,8 @@ serve:
 	python3 -m http.server 8080
 
 go-watch:
-	GOOS=js GOARCH=wasm                    \
-	nodemon --watch './go_boid_stuff/*.go' \
-	--signal SIGTERM -e 'go'               \
-	--exec '$(GO_COMPILER) build -C ./go_boid_stuff/ -o ../dist/boid.wasm'
+	if [ $(GO_COMPILER) = go ]; then            \
+		npm run watch_go_boid_stuff_go;         \
+	else                                        \
+		npm run watch_go_boid_stuff_tiny_go;    \
+	fi

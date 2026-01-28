@@ -6,7 +6,7 @@ Check out the github site thing to see them in action
 
 * A **Go** Compiler
 * **python3** for html server
-* **npm** and **nodemon** for building and watching typescript
+* **npm** for building and watching typescript
 
 * **tinygo** as a separate go compiler (optional)
 * **wasm2wat** (optional)
@@ -14,6 +14,9 @@ Check out the github site thing to see them in action
 ## Quick Start
 
 ```sh
+# ya gotta do what you gotta do
+npm install
+
 # start a full development build. (uses threads to start running everything)
 make full_watch
 
