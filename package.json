@@ -5,8 +5,25 @@
   "main": "index.js",
   "scripts": {
     "watch": "webpack -w",
-    "watch_go_boid_stuff_go"     : "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'go     build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
-    "watch_go_boid_stuff_tiny_go": "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'tinygo build -C ./go_boid_stuff/ -o ../dist/boid.wasm'"
+  
+    "watch_go_boid_stuff go"    : "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'go     build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
+    "watch_go_boid_stuff tinygo": "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'tinygo build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
+
+    "boid.wasm go"     : "GOOS=js GOARCH=wasm go     build -C ./go_boid_stuff/ -o ../dist/boid.wasm",
+    "boid.wasm tinygo" : "GOOS=js GOARCH=wasm tinygo build -C ./go_boid_stuff/ -o ../dist/boid.wasm",
+
+    "boid.wat": "wasm2wat dist/boid.wasm > dist/boid.wat",
+
+    "supply_wasm_exec go"     : "ln -fsr ./web_src/wasm_exec.js      ./dist/wasm_exec.js",
+    "supply_wasm_exec tinygo" : "ln -fsr ./web_src/wasm_exec_tiny.js ./dist/wasm_exec.js",
+
+    "serve": "http-server './' -p 8080",
+
+    "comment": "i just fucking love package.json",
+    "full_watch go"     : "npm install && npm run 'boid.wasm go'     && npm run 'supply_wasm_exec go'     && npm run 'watch' & npm run 'serve' & npm run 'watch_go_boid_stuff go'     &",
+    "full_watch tinygo" : "npm install && npm run 'boid.wasm tinygo' && npm run 'supply_wasm_exec tinygo' && npm run 'watch' & npm run 'serve' & npm run 'watch_go_boid_stuff tinygo' &",
+
+    "dummy": "echo \"This is just so i don't have to deal with the dumb json format\""
   },
   "author": "DiscRoomFan36",
   "license": "MIT",
@@ -16,6 +33,7 @@
     "webpack": "5.99.9",
     "webpack-cli": "6.0.1",
     "@types/offscreencanvas": "2019.7.3",
-    "nodemon": "3.1.11"
+    "nodemon": "3.1.11",
+    "http-server": "14.1.1"
   }
 }

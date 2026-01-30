@@ -35,7 +35,7 @@ serve:
 
 go-watch:
 	if [ $(GO_COMPILER) = go ]; then            \
-		npm run watch_go_boid_stuff_go;         \
+		npm run "watch_go_boid_stuff go";       \
 	else                                        \
-		npm run watch_go_boid_stuff_tiny_go;    \
+		npm run "watch_go_boid_stuff tinygo";   \
 	fi
