@@ -17,8 +17,10 @@ boid.wat:
 	wasm2wat dist/boid.wasm > dist/boid.wat
 
 
-npm-watch: boid.wasm
+npm_install:
 	npm install
+
+npm-watch: boid.wasm npm_install
 	npm run watch
 
 # TODO we might as well just get these from there respective compilers
@@ -31,9 +33,14 @@ supply_wasm_exec:
 	fi
 
 serve:
-	python3 -m http.server 8080
+	npm run serve
+# 	this cuts down on the python dependency.
+# 	python3 -m http.server 8080
 
-go-watch:
+go-watch: npm_install
+#   we rely on npm to have nodemon
+#   this dose mean we cant have more than these 2 compilers for now...
+#   i blame npm
 	if [ $(GO_COMPILER) = go ]; then            \
 		npm run "watch_go_boid_stuff go";       \
 	else                                        \
