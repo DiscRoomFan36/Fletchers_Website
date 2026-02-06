@@ -4,27 +4,33 @@
 import { Log_Type, log, DEBUG_DISPLAY } from "./logger";
 import { setup_sliders } from "./setup_sliders";
 
+// cool trick
 const IN_DEV_MODE = (window.location.hostname == "localhost");
 
-interface Arguments {
+
+// NOTE all names correspond with stuff in go,
+// cannot change any name without changing go code.
+interface Get_Next_Frame_Arguments {
     width:  number;
     height: number;
     buffer: Uint8ClampedArray;
 
     mouse: Mouse;
 
+    // TODO cannot change this name without messing up other code.
     rects: Rect[];
 };
 
-interface GoFunctions {
-    SetProperties: (obj:Object) => number;
-    GetProperties: () => Object;
+// NOTE we *CAN* change these names, the 'get_go_functions()' handles the real names
+interface Go_Functions {
+    set_properties: (obj:Object) => number;
+    get_properties: () => Object;
 
-    GetNextFrame: (args: Arguments) => number;
+    get_next_frame: (args: Get_Next_Frame_Arguments) => number;
 };
 
 // NOTE we keep the @ts-ignore's in here
-async function GetGoFunctions(): Promise<GoFunctions> {
+async function get_go_functions(): Promise<Go_Functions> {
     // @ts-ignore
     const go = new Go(); // NOTE this comes from the wasm_exec.js thing
 
@@ -34,27 +40,28 @@ async function GetGoFunctions(): Promise<GoFunctions> {
 
     return {
         // @ts-ignore
-        SetProperties: SetProperties,
+        set_properties: SetProperties,
         // @ts-ignore
-        GetProperties: GetProperties,
+        get_properties: GetProperties,
 
         // @ts-ignore
-        GetNextFrame: GetNextFrame,
+        get_next_frame: GetNextFrame,
     };
 };
 
 // Credit to rexim for the inspiration: https://github.com/tsoding/koil
 interface Display {
-    ctx: CanvasRenderingContext2D;
-    backCtx: OffscreenCanvasRenderingContext2D;
+    render_ctx: CanvasRenderingContext2D;
+    back_buffer_render_ctx: OffscreenCanvasRenderingContext2D;
 
     // imageData: ImageData
 
-    backBufferArray: Uint8ClampedArray;
-    backImageWidth: number;
-    backImageHeight: number;
+    back_buffer_array        : Uint8ClampedArray;
+    back_buffer_image_width  : number;
+    back_buffer_image_height : number;
 };
 
+// [r, g, b, a], not necessarily in that order
 const NUM_COLOR_COMPONENTS = 4;
 
 const SQUISH_FACTOR = 1;
@@ -62,43 +69,43 @@ const SQUISH_FACTOR = 1;
 
 
 interface Vec2 {
-    x: number;
-    y: number;
+    x : number;
+    y : number;
 };
 
 interface Rect {
-    x:      number;
-    y:      number;
-    width:  number;
-    height: number;
+    x      : number;
+    y      : number;
+    width  : number;
+    height : number;
 };
 
 interface Mouse {
-    pos:            Vec2;
-    left_down:      boolean;
-    middle_down:    boolean;
-    right_down:     boolean;
+    pos         : Vec2;
+    left_down   : boolean;
+    middle_down : boolean;
+    right_down  : boolean;
 };
 
 const mouse: Mouse = {
-    pos:            {x: 0, y: 0},
-    left_down:      false,
-    middle_down:    false,
-    right_down:     false,
+    pos         : {x: 0, y: 0},
+    left_down   : false,
+    middle_down : false,
+    right_down  : false,
 };
 
 
 function dom_rect_to_rect(dom_rect: DOMRect): Rect {
     return {
-        x:      dom_rect.x,
-        y:      dom_rect.y,
-        width:  dom_rect.width,
-        // to account for letters like j
-        height: dom_rect.height + 5,
+        x      : dom_rect.x,
+        y      : dom_rect.y,
+        width  : dom_rect.width,
+        // to account for letters like 'j'
+        height : dom_rect.height + 5,
     };
 };
 
-function get_all_collide_able_rects(): Rect[] {
+function get_all_collidable_rects(): Rect[] {
     const CLASS = "collide";
     const elements = document.getElementsByClassName(CLASS);
 
@@ -112,205 +119,222 @@ function get_all_collide_able_rects(): Rect[] {
     return result;
 };
 
-function renderBoids(display: Display, go: GoFunctions) {
-    const rects = get_all_collide_able_rects();
+function render_boids(display: Display, go: Go_Functions) {
+    const collidable_rectangles = get_all_collidable_rects();
 
-    const width  = Math.floor(display.ctx.canvas.width  / SQUISH_FACTOR);
-    const height = Math.floor(display.ctx.canvas.height / SQUISH_FACTOR);
+    // using squish factor, we can change the rendering size of the boid image we just got.
+    const canvas_width  = Math.floor(display.render_ctx.canvas.width  / SQUISH_FACTOR);
+    const canvas_height = Math.floor(display.render_ctx.canvas.height / SQUISH_FACTOR);
 
-    const buffer_size = width * height * NUM_COLOR_COMPONENTS;
+    const buffer_size = canvas_width * canvas_height * NUM_COLOR_COMPONENTS;
 
-    if (display.backImageWidth !== width || display.backImageHeight !== height) {
+    // resize back buffer if canvas size changed.
+    if (display.back_buffer_image_width !== canvas_width || display.back_buffer_image_height !== canvas_height) {
         log(Log_Type.General, "Oh god. were resizing the buffer");
 
-        if (display.backBufferArray.length < buffer_size) {
-            log(Log_Type.General, "Its getting bigger"); // my penis
+        if (display.back_buffer_array.length < buffer_size) {
+            log(Log_Type.General, "Back buffer array getting bigger"); // my penis
             // make the buffer bigger
-            display.backBufferArray = new Uint8ClampedArray(buffer_size);
+            display.back_buffer_array = new Uint8ClampedArray(buffer_size);
         }
 
 
-        const backCanvas = new OffscreenCanvas(width, height);
+        const back_canvas = new OffscreenCanvas(canvas_width, canvas_height);
 
-        const backCtx = backCanvas.getContext("2d");
-        if (backCtx === null)    throw new Error("2D context is not supported");
+        const back_ctx = back_canvas.getContext("2d");
+        if (back_ctx === null)    throw new Error("2D context is not supported");
 
-        display.backCtx = backCtx;
-        display.backCtx.imageSmoothingEnabled = false;
+        display.back_buffer_render_ctx = back_ctx;
+        display.back_buffer_render_ctx.imageSmoothingEnabled = false;
 
-        display.backImageWidth = width;
-        display.backImageHeight = height;
+        display.back_buffer_image_width = canvas_width;
+        display.back_buffer_image_height = canvas_height;
     }
 
-    const buffer = display.backBufferArray.subarray(0, buffer_size);
+    const buffer = display.back_buffer_array.subarray(0, buffer_size);
 
-    const args: Arguments = {
-        width: width,
-        height: height,
+    const args: Get_Next_Frame_Arguments = {
+        width: canvas_width,
+        height: canvas_height,
         buffer: buffer,
 
         mouse: mouse,
 
-        rects: rects,
+        rects: collidable_rectangles,
     };
 
-    const numFilled = go.GetNextFrame(args);
+    const num_bytes_filled = go.get_next_frame(args);
 
-    if (numFilled !== buffer_size)    throw new Error(`GetNextFrame got ${numFilled}`);
+    if (num_bytes_filled !== buffer_size)    throw new Error(`go.get_next_frame got incorrect number of bytes, wanted: ${buffer_size}, got: ${num_bytes_filled}`);
 
     // @ts-ignore // why dose this line make an error in my editor
-    const imageData = new ImageData(buffer, width, height);
+    const image_data = new ImageData(buffer, canvas_width, canvas_height);
 
     // is this cool?
-    display.backCtx.putImageData(imageData, 0, 0);
+    // 
+    // ghe whole point of this back_buffer is to prevent flickering and
+    // stuff, buf if were only going to be drawing one thing...
+    // whats the point?
+    display.back_buffer_render_ctx.putImageData(image_data, 0, 0);
 
     // NOTE this will stretch the thing.
     // canvas.width might change during the time this is running
-    display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
+    display.render_ctx.drawImage(display.back_buffer_render_ctx.canvas, 0, 0, display.render_ctx.canvas.width, display.render_ctx.canvas.height);
 
+    // lets hope javascript is smart enough to deallocate this...
     // imageData = null
 };
 
-const renderTimes: number[] = [];
-const deltaTimes: number[] = [];
+
+// TODO make this smarter.
+const render_times: number[] = [];
+const delta_times: number[] = [];
+
 // Credit: https://github.com/tsoding/koil
-function renderDebugInfo(display: Display, renderTime: number, deltaTime: number) {
+// 
+// TODO remove new_render_time, and new_delta_time, just make a class or something.
+function render_debug_info(display: Display, new_render_time: number, new_delta_time: number) {
     const FONT_SIZE = 28;
-    display.ctx.font = `${FONT_SIZE}px bold`;
+    display.render_ctx.font = `${FONT_SIZE}px bold`;
+
+    render_times.push(new_render_time);
+    if (render_times.length > 60) { render_times.shift(); }
+
+    delta_times.push(new_delta_time);
+    if (delta_times .length > 60) { delta_times .shift(); }
+
+    const render_avg = render_times.reduce((a, b) => a + b, 0) / render_times.length;
+    const delta_avg  = delta_times .reduce((a, b) => a + b, 0) / delta_times .length;
 
     const labels: string[] = [];
+    { // construct the labels.
 
-    renderTimes.push(renderTime);
-    if (renderTimes.length > 60) { renderTimes.shift(); }
+        // this is the only unique things between render_times and delta_times
+        const frames_per_second = (1/delta_avg*1000).toFixed(2);
+        const seconds_per_frame = (  delta_avg/1000).toFixed(5);
+        labels.push(`F/S: ${frames_per_second}    S/F: ${seconds_per_frame}`);
 
-    deltaTimes.push(deltaTime);
-    if (deltaTimes.length > 60) { deltaTimes.shift(); }
-
-    const renderAvg = renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length;
-    const deltaAvg  = deltaTimes .reduce((a, b) => a + b, 0) / deltaTimes .length;
-
-    const frames_per_second = (1/deltaAvg*1000).toFixed(2);
-    const seconds_per_frame = (  deltaAvg/1000).toFixed(5);
-    labels.push(`F/S: ${frames_per_second}    S/F: ${seconds_per_frame}`);
-
-    labels.push(`WASM Render Time Avg (ms): ${renderAvg.toFixed(2)}`);
-    labels.push(`Render/Sec (MAX): ${(1/renderAvg*1000).toFixed(2)}`);
-
+        labels.push(`WASM Render Time Avg (ms): ${render_avg.toFixed(2)}`);
+        labels.push(`Render/Sec (MAX): ${(1/render_avg*1000).toFixed(2)}`);
+    }
 
     const PADDING = 70;
     const SHADOW_OFFSET = FONT_SIZE*0.06;
     for (let i = 0; i < labels.length; i++) {
-        display.ctx.fillStyle = "black";
-        display.ctx.fillText(labels[i], PADDING, PADDING + FONT_SIZE*i);
-        display.ctx.fillStyle = "white";
-        display.ctx.fillText(labels[i], PADDING + SHADOW_OFFSET, PADDING - SHADOW_OFFSET + FONT_SIZE*i);
+        display.render_ctx.fillStyle = "black";
+        display.render_ctx.fillText(labels[i], PADDING, PADDING + FONT_SIZE*i);
+        display.render_ctx.fillStyle = "white";
+        display.render_ctx.fillText(labels[i], PADDING + SHADOW_OFFSET, PADDING - SHADOW_OFFSET + FONT_SIZE*i);
     }
 };
+
+
+
+//////////////////////////////////////////////////
+//            The Main Function
+//////////////////////////////////////////////////
 
 (async () => {
     if (IN_DEV_MODE) console.log("In Dev Mode");
 
-    const go = await GetGoFunctions();
+    const go = await get_go_functions();
 
     { // Handle slider stuff
-        const properties = Object.entries(go.GetProperties());
+        const boid_properties = Object.entries(go.get_properties());
 
         function set_property(name: string, value: number|boolean) {
             // https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript
             const obj: Record<string,number|boolean> = {};
             obj[name] = value;
 
-            go.SetProperties(obj);
+            go.set_properties(obj);
         };
 
         // TODO maybe make this dev mode only...
         // it also has to remove the Settings thing...
-        setup_sliders(properties, set_property);
+        setup_sliders(boid_properties, set_property);
     }
 
 
     { // setup input handling.
         // why doesn't typescript have an enum for this?
-        enum mouse_buttons {
-            MOUSE_LEFT      = 0,
-            MOUSE_MIDDLE    = 1,
-            MOUSE_RIGHT     = 2,
+        enum Mouse_Buttons {
+            Left      = 0,
+            Middle    = 1,
+            Right     = 2,
         };
 
         const root = document.getRootNode() as HTMLHtmlElement;
+
         root.addEventListener('mousemove', (ev) => {
             mouse.pos = {x: ev.x, y: ev.y}
         });
         // this will break if the user slides there mouse outside of the screen while clicking, but this is the web, people expect it to suck.
         root.addEventListener('mousedown', (ev) => {
-            if (ev.button == mouse_buttons.MOUSE_LEFT)      mouse.left_down   = true;
-            if (ev.button == mouse_buttons.MOUSE_MIDDLE)    mouse.middle_down = true;
-            if (ev.button == mouse_buttons.MOUSE_RIGHT)     mouse.right_down  = true;
+            if (ev.button == Mouse_Buttons.Left)      mouse.left_down   = true;
+            if (ev.button == Mouse_Buttons.Middle)    mouse.middle_down = true;
+            if (ev.button == Mouse_Buttons.Right)     mouse.right_down  = true;
         });
         root.addEventListener('mouseup',   (ev) => {
-            if (ev.button == mouse_buttons.MOUSE_LEFT)      mouse.left_down   = false;
-            if (ev.button == mouse_buttons.MOUSE_MIDDLE)    mouse.middle_down = false;
-            if (ev.button == mouse_buttons.MOUSE_RIGHT)     mouse.right_down  = false;
+            if (ev.button == Mouse_Buttons.Left)      mouse.left_down   = false;
+            if (ev.button == Mouse_Buttons.Middle)    mouse.middle_down = false;
+            if (ev.button == Mouse_Buttons.Right)     mouse.right_down  = false;
         });
     }
 
-    // TODO naming better, use snake case everywhere!!
-    // TODO naming better, use snake case everywhere!!
-    // TODO naming better, use snake case everywhere!!
-    // TODO naming better, use snake case everywhere!!
-    // TODO naming better, use snake case everywhere!!
 
     // const canvas_container = document.getElementById("canvas_div") as HTMLCanvasElement | null
-    const boidCanvas = document.getElementById("boid_canvas") as HTMLCanvasElement | null;
-    if (boidCanvas === null)    throw new Error("No canvas with id `boid_canvas` is found");
+    const boid_canvas = document.getElementById("boid_canvas") as HTMLCanvasElement | null;
+    if (boid_canvas === null)    throw new Error("No canvas with id `boid_canvas` is found");
 
-    const ctx = boidCanvas.getContext("2d");
-    if (ctx === null)    throw new Error("2D context is not supported");
-    ctx.imageSmoothingEnabled = false;
+    // TODO naming better, use snake case everywhere!!
+    const boid_canvas_ctx = boid_canvas.getContext("2d");
+    if (boid_canvas_ctx === null)    throw new Error("2D context is not supported");
+    boid_canvas_ctx.imageSmoothingEnabled = false;
 
-    const [backImageWidth, backImageHeight] = [ctx.canvas.width, ctx.canvas.height];
-    const backCanvas = new OffscreenCanvas(backImageWidth, backImageHeight);
+    const [back_buffer_image_width, back_buffer_image_height] = [boid_canvas_ctx.canvas.width, boid_canvas_ctx.canvas.height];
+    const back_buffer_canvas = new OffscreenCanvas(back_buffer_image_width, back_buffer_image_height);
 
-    const backCtx = backCanvas.getContext("2d");
-    if (backCtx === null)    throw new Error("2D context is not supported");
-    backCtx.imageSmoothingEnabled = false;
+    const back_buffer_render_ctx = back_buffer_canvas.getContext("2d");
+    if (back_buffer_render_ctx === null)    throw new Error("2D context is not supported");
+    back_buffer_render_ctx.imageSmoothingEnabled = false;
 
-    const backBufferArray = new Uint8ClampedArray(backImageWidth * backImageHeight * 4);
+    const back_buffer_array = new Uint8ClampedArray(back_buffer_image_width * back_buffer_image_height * 4);
 
     const display: Display = {
-        ctx,
-        backCtx,
+        render_ctx: boid_canvas_ctx,
+        back_buffer_render_ctx: back_buffer_render_ctx,
 
-        backBufferArray,
+        back_buffer_array: back_buffer_array,
 
-        backImageWidth,
-        backImageHeight,
+        back_buffer_image_width: back_buffer_image_width,
+        back_buffer_image_height: back_buffer_image_height,
     };
 
-    let prevTimestamp = 0;
+    let prev_timestamp = 0;
     const frame = (timestamp: number) => {
-        ctx.canvas.width  = window.innerWidth;
-        ctx.canvas.height = window.innerHeight;
+        boid_canvas_ctx.canvas.width  = window.innerWidth;
+        boid_canvas_ctx.canvas.height = window.innerHeight;
 
-        const deltaTime = (timestamp - prevTimestamp);
-        prevTimestamp = timestamp;
+        const delta_time = (timestamp - prev_timestamp);
+        prev_timestamp = timestamp;
 
         // TODO Don't need delta time, boid thing dose it for us? change?
 
-        const startTime = performance.now();
-            renderBoids(display, go);
-        const endTime = performance.now();
+        const start_time = performance.now();
+            render_boids(display, go);
+        const end_time = performance.now();
 
         // In ms
-        const renderTime = endTime - startTime;
+        const render_time = end_time - start_time;
 
-        if (DEBUG_DISPLAY && IN_DEV_MODE) renderDebugInfo(display, renderTime, deltaTime);
+        if (DEBUG_DISPLAY && IN_DEV_MODE)    render_debug_info(display, render_time, delta_time);
 
         window.requestAnimationFrame(frame);
     };
 
     window.requestAnimationFrame((timestamp) => {
-        prevTimestamp = timestamp
+        prev_timestamp = timestamp
         window.requestAnimationFrame(frame)
     });
 })();
