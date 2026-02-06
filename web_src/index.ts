@@ -120,6 +120,15 @@ function get_all_collidable_rects(): Rect[] {
 };
 
 function render_boids(display: Display, go: Go_Functions) {
+    // we get the bounding rectangles of elements in the document,
+   //
+    // we COULD have just rendered the text ourselves, (with .fillText())
+    // but i want the user to be able to select the email text.
+    //
+    // maybe when that email text is moves somewhere else we could have all
+    // the boid text rendered by the boid sim itself.
+    //
+    // although that might introduce issues when the boid wasm hasn't loaded.
     const collidable_rectangles = get_all_collidable_rects();
 
     // using squish factor, we can change the rendering size of the boid image we just got.
@@ -288,11 +297,11 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
     if (boid_canvas === null)    throw new Error("No canvas with id `boid_canvas` is found");
 
     // TODO naming better, use snake case everywhere!!
-    const boid_canvas_ctx = boid_canvas.getContext("2d");
-    if (boid_canvas_ctx === null)    throw new Error("2D context is not supported");
-    boid_canvas_ctx.imageSmoothingEnabled = false;
+    const boid_canvas_render_ctx = boid_canvas.getContext("2d");
+    if (boid_canvas_render_ctx === null)    throw new Error("2D context is not supported");
+    boid_canvas_render_ctx.imageSmoothingEnabled = false;
 
-    const [back_buffer_image_width, back_buffer_image_height] = [boid_canvas_ctx.canvas.width, boid_canvas_ctx.canvas.height];
+    const [back_buffer_image_width, back_buffer_image_height] = [boid_canvas_render_ctx.canvas.width, boid_canvas_render_ctx.canvas.height];
     const back_buffer_canvas = new OffscreenCanvas(back_buffer_image_width, back_buffer_image_height);
 
     const back_buffer_render_ctx = back_buffer_canvas.getContext("2d");
@@ -302,7 +311,7 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
     const back_buffer_array = new Uint8ClampedArray(back_buffer_image_width * back_buffer_image_height * 4);
 
     const display: Display = {
-        render_ctx: boid_canvas_ctx,
+        render_ctx: boid_canvas_render_ctx,
         back_buffer_render_ctx: back_buffer_render_ctx,
 
         back_buffer_array: back_buffer_array,
@@ -313,8 +322,8 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     let prev_timestamp = 0;
     const frame = (timestamp: number) => {
-        boid_canvas_ctx.canvas.width  = window.innerWidth;
-        boid_canvas_ctx.canvas.height = window.innerHeight;
+        boid_canvas_render_ctx.canvas.width  = window.innerWidth;
+        boid_canvas_render_ctx.canvas.height = window.innerHeight;
 
         const delta_time = (timestamp - prev_timestamp);
         prev_timestamp = timestamp;
