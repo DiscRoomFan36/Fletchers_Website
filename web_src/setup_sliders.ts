@@ -6,7 +6,7 @@ enum Property_Type {
     Property_Float,
     Property_Int,
     Property_Bool,
-}
+};
 
 class Property_Struct {
     property_type:   Property_Type = Property_Type.None;
@@ -22,13 +22,13 @@ class Property_Struct {
     int_default:     number = 0;
 
     bool_default:    boolean = false;
-}
+};
 
 function tag_prop_to_parts(prop: string): [string, string] {
-    const [left, right_] = prop.split(":")
-    const right = right_.slice(1, right_.length-1)
-    return [left, right]
-}
+    const [left, right_] = prop.split(":");
+    const right = right_.slice(1, right_.length-1);
+    return [left, right];
+};
 
 function parseBool(s: string): boolean {
     // 1, t, T, TRUE, true, True,
@@ -36,28 +36,30 @@ function parseBool(s: string): boolean {
     switch (s) {
     case "1":
     case "t": case "T":
-    case "TRUE": case "true": case "True":
-        return true
+    case "TRUE": case "true": case "True": {
+        return true;
+    }
 
     case "0":
     case "f": case "F":
-    case "FALSE": case "false": case "False":
-        return false
+    case "FALSE": case "false": case "False": {
+        return false;
+    }
 
     default: throw new Error(`Unknown string in parseBool, was ${s}`);
     }
-}
+};
 
 
 // puts some sliders up to control some parameters
 export function setup_sliders(properties: [string, string][], set_property: (name:string, value:number|boolean) => void) {
 
     const slider_container = document.getElementById("slideContainer");
-    if (slider_container === null) { throw new Error("Cannot Get slider container"); }
+    if (slider_container === null)    throw new Error("Cannot Get slider container");
 
     // TODO for the slides that have a small range (like cohesion factor) make the value the square of the number.
 
-    properties.sort() // hope someone else wasn't using this.
+    properties.sort(); // hope someone else wasn't using this.
 
     for (const [name, tag] of properties) {
 
@@ -68,14 +70,14 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
         const tag_split = (tag as string).split(" ");
 
         const [prop_property, prop_type] = tag_prop_to_parts(tag_split[0]);
-        if (prop_property != "Property") throw new Error(`First property is not property, tag was ${tag}`);
+        if (prop_property != "Property")    throw new Error(`First property is not property, tag was ${tag}`);
 
         const property_struct = new Property_Struct();
 
         switch (prop_type) {
-        case "float": property_struct.property_type = Property_Type.Property_Float; break;
-        case "int":   property_struct.property_type = Property_Type.Property_Int;   break;
-        case "bool":  property_struct.property_type = Property_Type.Property_Bool;  break;
+        case "float": { property_struct.property_type = Property_Type.Property_Float; } break;
+        case "int":   { property_struct.property_type = Property_Type.Property_Int;   } break;
+        case "bool":  { property_struct.property_type = Property_Type.Property_Bool;  } break;
 
         default: throw new Error(`Unknown prop type ${prop_type}`);
         }
@@ -84,8 +86,8 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 
 
         while (tag_split.length > 0) {
-            const [left, right] = tag_prop_to_parts(tag_split[0])
-            tag_split.shift()
+            const [left, right] = tag_prop_to_parts(tag_split[0]);
+            tag_split.shift();
 
             switch (left) {
             case "Range":
@@ -94,19 +96,15 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
                     const [min_s, max_s] = right.split(";");
                     property_struct.float_range_min = parseFloat(min_s);
                     property_struct.float_range_max = parseFloat(max_s);
-                    break;
-                }
+                } break;
 
                 case Property_Type.Property_Int: {
                     const [min_s, max_s] = right.split(";");
                     property_struct.int_range_min = parseInt(min_s);
                     property_struct.int_range_max = parseInt(max_s);
-                    break;
-                }
+                } break;
 
-                case Property_Type.Property_Bool: {
-                    throw new Error("Boolean dose not have a range!");
-                }
+                case Property_Type.Property_Bool: throw new Error("Boolean dose not have a range!");
 
                 default: throw new Error(`Unknown type in ${name}`);
                 }
@@ -115,9 +113,9 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 
             case "Default":
                 switch (property_struct.property_type) {
-                case Property_Type.Property_Float: property_struct.float_default = parseFloat(right); break;
-                case Property_Type.Property_Int  : property_struct.int_default   = parseInt  (right); break;
-                case Property_Type.Property_Bool : property_struct.bool_default  = parseBool (right); break;
+                case Property_Type.Property_Float: { property_struct.float_default = parseFloat(right); } break;
+                case Property_Type.Property_Int  : { property_struct.int_default   = parseInt  (right); } break;
+                case Property_Type.Property_Bool : { property_struct.bool_default  = parseBool (right); } break;
 
                 default: throw new Error(`Unknown type in ${name}`);
                 }
@@ -132,22 +130,22 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
         // log(Log_Type.Debug_Sliders, `property struct ${property_struct}`);
 
         switch (property_struct.property_type) {
-        case Property_Type.Property_Float:
-            make_float_slider(slider_container, name, property_struct, set_property)
-            break;
+        case Property_Type.Property_Float: {
+            make_float_slider(slider_container, name, property_struct, set_property);
+        } break;
 
-        case Property_Type.Property_Int:
-            make_int_slider(slider_container, name, property_struct, set_property)
-            break;
+        case Property_Type.Property_Int: {
+            make_int_slider(slider_container, name, property_struct, set_property);
+        } break;
 
-        case Property_Type.Property_Bool:
-            make_bool_slider(slider_container, name, property_struct, set_property)
-            break;
+        case Property_Type.Property_Bool: {
+            make_bool_slider(slider_container, name, property_struct, set_property);
+        } break;
 
         default: throw new Error(`Unknown property type ${property_struct.property_type}`);
         }
     }
-}
+};
 
 
 ///////////////////////////////////////////////
@@ -173,7 +171,7 @@ function make_float_slider(slider_container: HTMLElement, name: string, property
     slider_container.appendChild(new_thing);
 
     const slider = document.getElementById(id) as HTMLInputElement | null;
-    if (slider === null) throw new Error("Could not find the slider");
+    if (slider === null)    throw new Error("Could not find the slider");
 
 
     slider.addEventListener("input", (event) => {
@@ -182,13 +180,13 @@ function make_float_slider(slider_container: HTMLElement, name: string, property
         const slider_number = Number(slider_value_string);
 
         const slider_text = document.getElementById(para_id) as HTMLParagraphElement | null;
-        if (slider_text === null) throw new Error(`could not find slider_text ${para_id}`);
+        if (slider_text === null)    throw new Error(`could not find slider_text ${para_id}`);
 
         slider_text.textContent = `${paragraph_text}: ${slider_number}`;
 
         set_property(name, slider_number);
     });
-}
+};
 
 
 ///////////////////////////////////////////////
@@ -214,7 +212,7 @@ function make_int_slider(slider_container: HTMLElement, name: string, property_s
     slider_container.appendChild(new_thing);
 
     const slider = document.getElementById(id) as HTMLInputElement | null;
-    if (slider === null) throw new Error("Could not find the slider");
+    if (slider === null)    throw new Error("Could not find the slider");
 
 
     slider.addEventListener("input", (event) => {
@@ -223,13 +221,13 @@ function make_int_slider(slider_container: HTMLElement, name: string, property_s
         const slider_number = Number(slider_value_string);
 
         const slider_text = document.getElementById(para_id) as HTMLParagraphElement | null;
-        if (slider_text === null) throw new Error(`could not find slider_text ${para_id}`);
+        if (slider_text === null)    throw new Error(`could not find slider_text ${para_id}`);
 
         slider_text.textContent = `${paragraph_text}: ${slider_number}`;
 
         set_property(name, slider_number);
     });
-}
+};
 
 
 ///////////////////////////////////////////////
@@ -255,7 +253,9 @@ function make_bool_slider(slider_container: HTMLElement, name: string, property_
     if (slider === null) throw new Error("Could not find the slider");
 
     slider.addEventListener("input", (event) => {
-        const checked = (event.target as HTMLInputElement).checked;
-        set_property(name, checked);
+        const target = event.target as HTMLInputElement | null;
+        if (target === null) throw new Error("Target was null, did own own element get deleted?");
+
+        set_property(name, target.checked);
     });
-}
+};

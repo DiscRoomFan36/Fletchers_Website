@@ -10,7 +10,7 @@ export enum Log_Type {
 
     Debug_Display,
     Debug_Sliders,
-}
+};
 
 export function log(log_type: Log_Type, ...data: any[]): void {
     // if this is the empty string
@@ -18,21 +18,21 @@ export function log(log_type: Log_Type, ...data: any[]): void {
     var log_header = "";
 
     switch (log_type) {
-        case Log_Type.General:
+        case Log_Type.General: {
             log_header = "";
             do_log = true;
-            break;
+        } break;
 
-        case Log_Type.Debug_Display:
+        case Log_Type.Debug_Display: {
             log_header = "DEBUG_DISPLAY";
-            if (DEBUG_DISPLAY) do_log = true;
-            break;
+            if (DEBUG_DISPLAY)    do_log = true;
+        } break;
 
 
-        case Log_Type.Debug_Sliders:
+        case Log_Type.Debug_Sliders: {
             log_header = "DEBUG_SLIDERS";
-            if (DEBUG_SLIDERS) do_log = true;
-            break;
+            if (DEBUG_SLIDERS)    do_log = true;
+        } break;
     }
 
     if (do_log) {
@@ -42,4 +42,4 @@ export function log(log_type: Log_Type, ...data: any[]): void {
             console.log(...data);
         }
     }
-}
+};
