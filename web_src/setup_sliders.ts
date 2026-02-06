@@ -140,8 +140,9 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 };
 
 
+
 ///////////////////////////////////////////////
-//         Make a slider for an float
+//         Make a slider for a float
 ///////////////////////////////////////////////
 
 function make_float_slider(slider_container: HTMLElement, name: string, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
@@ -167,9 +168,10 @@ function make_float_slider(slider_container: HTMLElement, name: string, property
 
 
     slider.addEventListener("input", (event) => {
-        const slider_value_string = (event.target as HTMLInputElement).value;
+        const the_slider = event.target as HTMLInputElement | null
+        if (the_slider === null)    throw new Error("Target was null, did its own element get deleted underneath itself?")
 
-        const slider_number = Number(slider_value_string);
+        const slider_number = Number(the_slider.value);
 
         const slider_text = document.getElementById(paragraph_id) as HTMLParagraphElement | null;
         if (slider_text === null)    throw new Error(`could not find slider_text ${paragraph_id}`);
@@ -208,9 +210,10 @@ function make_int_slider(slider_container: HTMLElement, name: string, property_s
 
 
     slider.addEventListener("input", (event) => {
-        const slider_value_string = (event.target as HTMLInputElement).value;
+        const the_slider = event.target as HTMLInputElement | null
+        if (the_slider === null)    throw new Error("Target was null, did its own element get deleted underneath itself?")
 
-        const slider_number = Number(slider_value_string);
+        const slider_number = Number(the_slider.value);
 
         const slider_text = document.getElementById(para_id) as HTMLParagraphElement | null;
         if (slider_text === null)    throw new Error(`could not find slider_text ${para_id}`);
@@ -245,9 +248,9 @@ function make_bool_slider(slider_container: HTMLElement, name: string, property_
     if (slider === null) throw new Error("Could not find the slider");
 
     slider.addEventListener("input", (event) => {
-        const target = event.target as HTMLInputElement | null;
-        if (target === null) throw new Error("Target was null, did own own element get deleted?");
+        const the_slider = event.target as HTMLInputElement | null;
+        if (the_slider === null)    throw new Error("Target was null, did own own element get deleted?");
 
-        set_property(name, target.checked);
+        set_property(name, the_slider.checked);
     });
 };
