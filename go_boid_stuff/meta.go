@@ -182,7 +182,6 @@ func create_property_structs() map[string]Property_Struct {
 				if struct_field_flags & Flag_range != 0 { log.Panicf("%v: Range property was set twice.", name) }
 				struct_field_flags |= Flag_range
 
-				
 				switch property_struct.Property_type {
 				case Property_Float: {
 					ok, min_s, max_s := split_one(right, ";")
