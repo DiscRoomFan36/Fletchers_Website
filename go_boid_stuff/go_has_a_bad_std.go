@@ -19,6 +19,8 @@ func Remove_Ordered[T any](s *[]T, index int) {
 	*s = append((*s)[:index], (*s)[index+1:]...)
 }
 
+
+
 // why would i even want to use append?
 //
 // NOTE TO IDIOTS LIKE MYSELF,
@@ -30,6 +32,12 @@ func Remove_Ordered[T any](s *[]T, index int) {
 // ...Also i hate the iterating thing in this language...
 func Append[T any](s *[]T, elems ...T) {
 	*s = append(*s, elems...)
+}
+
+func Pop[T any](slice *[]T) T {
+	item  := (*slice)[ len(*slice)-1]
+	*slice = (*slice)[:len(*slice)-1]
+	return item
 }
 
 

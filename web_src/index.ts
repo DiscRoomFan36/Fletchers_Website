@@ -61,12 +61,6 @@ interface Display {
     back_buffer_image_height : number;
 };
 
-// [r, g, b, a], not necessarily in that order
-const NUM_COLOR_COMPONENTS = 4;
-
-const SQUISH_FACTOR = 1;
-
-
 
 interface Vec2 {
     x : number;
@@ -131,14 +125,24 @@ function render_boids(display: Display, go: Go_Functions) {
     // although that might introduce issues when the boid wasm hasn't loaded.
     const collidable_rectangles = get_all_collidable_rects();
 
-    // using squish factor, we can change the rendering size of the boid image we just got.
-    const canvas_width  = Math.floor(display.render_ctx.canvas.width  / SQUISH_FACTOR);
-    const canvas_height = Math.floor(display.render_ctx.canvas.height / SQUISH_FACTOR);
 
-    const buffer_size = canvas_width * canvas_height * NUM_COLOR_COMPONENTS;
+    const BOID_CANVAS_SQUISH_FACTOR = 1;
+    // this is the canvas that the wasm is going to draw into.
+    //
+    // based on the render canvas for now.
+    //
+    // using squish factor, we can change the rendering size of the boid image we just got.
+
+    // TODO when squished, mouse input dose not work right.
+    const boid_canvas_width  = /* 16*25; */ Math.floor(display.render_ctx.canvas.width  / BOID_CANVAS_SQUISH_FACTOR);
+    const boid_canvas_height = /*  9*25; */ Math.floor(display.render_ctx.canvas.height / BOID_CANVAS_SQUISH_FACTOR);
+
+    // [r, g, b, a], not necessarily in that order
+    const NUM_COLOR_COMPONENTS = 4;
+    const buffer_size = boid_canvas_width * boid_canvas_height * NUM_COLOR_COMPONENTS;
 
     // resize back buffer if canvas size changed.
-    if (display.back_buffer_image_width !== canvas_width || display.back_buffer_image_height !== canvas_height) {
+    if (display.back_buffer_image_width !== boid_canvas_width || display.back_buffer_image_height !== boid_canvas_height) {
         log(Log_Type.General, "Oh god. were resizing the buffer");
 
         if (display.back_buffer_array.length < buffer_size) {
@@ -148,7 +152,7 @@ function render_boids(display: Display, go: Go_Functions) {
         }
 
 
-        const back_canvas = new OffscreenCanvas(canvas_width, canvas_height);
+        const back_canvas = new OffscreenCanvas(boid_canvas_width, boid_canvas_height);
 
         const back_ctx = back_canvas.getContext("2d");
         if (back_ctx === null)    throw new Error("2D context is not supported");
@@ -156,15 +160,15 @@ function render_boids(display: Display, go: Go_Functions) {
         display.back_buffer_render_ctx = back_ctx;
         display.back_buffer_render_ctx.imageSmoothingEnabled = false;
 
-        display.back_buffer_image_width = canvas_width;
-        display.back_buffer_image_height = canvas_height;
+        display.back_buffer_image_width = boid_canvas_width;
+        display.back_buffer_image_height = boid_canvas_height;
     }
 
     const buffer = display.back_buffer_array.subarray(0, buffer_size);
 
     const args: Get_Next_Frame_Arguments = {
-        width: canvas_width,
-        height: canvas_height,
+        width: boid_canvas_width,
+        height: boid_canvas_height,
         buffer: buffer,
 
         mouse: mouse,
@@ -177,11 +181,11 @@ function render_boids(display: Display, go: Go_Functions) {
     if (num_bytes_filled !== buffer_size)    throw new Error(`go.get_next_frame got incorrect number of bytes, wanted: ${buffer_size}, got: ${num_bytes_filled}`);
 
     // @ts-ignore // why dose this line make an error in my editor
-    const image_data = new ImageData(buffer, canvas_width, canvas_height);
+    const image_data = new ImageData(buffer, boid_canvas_width, boid_canvas_height);
 
     // is this cool?
-    // 
-    // ghe whole point of this back_buffer is to prevent flickering and
+    //
+    // the whole point of this back_buffer is to prevent flickering and
     // stuff, buf if were only going to be drawing one thing...
     // whats the point?
     display.back_buffer_render_ctx.putImageData(image_data, 0, 0);
