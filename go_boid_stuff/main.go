@@ -5,11 +5,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"reflect"
-	"strings"
 	"syscall/js"
 	"time"
-	"unsafe"
 )
 
 var img Image
@@ -120,213 +117,12 @@ type Rectangle_js struct {
 }
 
 
-func js_value_to_json(value js.Value) string {
-	b := strings.Builder{}
-
-	switch value.Type() {
-	case js.TypeBoolean: {
-		as_bool := value.Bool()
-		if as_bool { b.WriteString("True")
-		} else     { b.WriteString("False") }
-	}
-
-	case js.TypeObject: {
-		b.WriteString("json: ")
-		b.WriteString(value.String())
-	}
-
-	default: {
-		panic(fmt.Errorf("js_value_to_json: Unknown Type %s", value.Type().String()))
-	}
-	}
-
-	return b.String()
-}
-
-// in my house, the error goes first. harder to ignore.
-func js_value_to_struct[T any](value js.Value) (T, error) {
-
-	var result T
-	result_base_pointer := unsafe.Pointer(&result)
-
-	type Item struct {
-		type_to_parse    reflect.Type
-		js_value         js.Value
-		base_pointer     unsafe.Pointer
-	}
-
-	stack := []Item{}
-	Append(&stack, Item{
-		type_to_parse : reflect.TypeFor[T](),
-		js_value      : value,
-		base_pointer  : result_base_pointer,
-	})
-
-	// for quick error checking
-	type_kind_to_js_type := func(kind reflect.Kind) js.Type {
-		switch kind {
-		case reflect.Bool:    { return js.TypeBoolean }
-
-		case reflect.Int:     { return js.TypeNumber  }
-		case reflect.Float64: { return js.TypeNumber  }
-		case reflect.Float32: { return js.TypeNumber  }
-
-		case reflect.Struct:  { return js.TypeObject  }
-		case reflect.Slice:   { return js.TypeObject  }
-
-		default: { panic(fmt.Errorf("unknown kind of type %v", kind)) }
-		}
-	}
-
-
-	for len(stack) > 0 {
-		item := Pop(&stack)
-
-		if item.js_value.IsNull() || item.js_value.IsUndefined() {
-			return result, fmt.Errorf("When trying to parse '%v' type, js.value was null or undefined", item.type_to_parse)
-		}
-
-		{ // quickly check the type of js.value
-			current_type_kind := item.type_to_parse.Kind()
-			current_js_type   := item.js_value.Type()
-
-			correct_js_type := type_kind_to_js_type(current_type_kind)
-
-			if correct_js_type != current_js_type {
-				return result, fmt.Errorf("element of type '%s' expects a js.value of type '%s', got '%s' instead", current_type_kind.String(), correct_js_type.String(), current_js_type.String())
-			}
-		}
-
-		switch item.type_to_parse.Kind() {
-		case reflect.Bool: {
-			as_bool_ptr := (*bool)(item.base_pointer)
-			*as_bool_ptr = item.js_value.Bool()
-		}
-
-		case reflect.Int: {
-			as_int_ptr := (*int)(item.base_pointer)
-			*as_int_ptr = item.js_value.Int()
-		}
-
-		case reflect.Float64: {
-			as_f64_ptr := (*float64)(item.base_pointer)
-			*as_f64_ptr = item.js_value.Float()
-		}
-
-		case reflect.Float32: {
-			as_f32_ptr := (*float32)(item.base_pointer)
-			*as_f32_ptr = float32(item.js_value.Float())
-		}
-
-		case reflect.Struct: {
-			// heres where it all falls apart...
-
-			// check if the type is js.value, this just means the user
-			// has no idea how to type this thing correctly, so we are
-			// just going to pass the whole thing to them
-			//
-			// also golang `rules for thee but not for me`
-			if item.type_to_parse == reflect.TypeFor[js.Value]() {
-				as_js_value_ptr := (*js.Value)(item.base_pointer)
-				*as_js_value_ptr = item.js_value
-			} else {
-
-				// loop over all fields, put into stack.
-				for i := range item.type_to_parse.NumField() {
-					new_field := item.type_to_parse.Field(i)
-					new_value := item.js_value.Get(new_field.Name)
-
-					if new_value.IsNull() || new_value.IsUndefined() {
-						return result, fmt.Errorf("Cannot find field %s in js.value %s", new_field.Name, js_value_to_json(item.js_value))
-					}
-
-					Append(&stack, Item{
-						type_to_parse : new_field.Type,
-						js_value      : new_value,
-						base_pointer  : unsafe.Add(item.base_pointer, new_field.Offset),
-					})
-				}
-			}
-		}
-
-		case reflect.Slice: {
-			slice_element_type := item.type_to_parse.Elem()
-
-			// its funny, we cannot tell the difference between an array and a
-			// "map", lets hope you got the types right!
-			js_array_len := item.js_value.Length()
-
-			// fmt.Println("before making slice")
-
-			// should i give this extra capacity? nah.
-			generic_slice := reflect.MakeSlice(item.type_to_parse, js_array_len, js_array_len)
-
-			// fmt.Println("after making slice")
-
-			// holy fuck, this is super funny.
-			as_slice_ptr  :=  (*[]int)(item.base_pointer)
-			*as_slice_ptr  = *(*[]int)(generic_slice.UnsafePointer())
-
-			// fmt.Println("after unsafe pointer")
-
-			// now we just need to load the slice.
-			//
-			// lets hope the array isn't to long,
-			//
-			// reverse iteration because this is going onto a stack,
-			// and will be pop'd off in reverse append order.
-			// might make this faster, I don't really know.
-			for slice_index := js_array_len-1; slice_index >= 0; slice_index -= 1 {
-				// fmt.Println("before funny pointer")
-				generic_slice_at_index := generic_slice.Index(slice_index)
-				// fmt.Printf("%+v, %+v\n", generic_slice_at_index.CanAddr(), generic_slice_at_index.UnsafeAddr())
-				// fmt.Println("after funny pointer")
-
-				addr_of_element_in_slice := generic_slice_at_index.UnsafeAddr()
-
-				panic("TODO: something is wrong here...")
-
-				Append(&stack, Item{
-					type_to_parse : slice_element_type,
-					// this weill be type checked properly,
-					js_value      : item.js_value.Index(slice_index),
-					// look! they match! very funny
-					// base_pointer  : generic_slice.Index(slice_index).UnsafePointer(),
-					base_pointer  : unsafe.Pointer(addr_of_element_in_slice),
-				})
-			}
-		}
-
-		default: {
-			// fmt.Printf("%+v, %+v\n", item, item.current_type)
-			return result, fmt.Errorf("type '%s' is unknown, and is currently not settable", item.type_to_parse.String())
-		}
-		}
-	}
-
-	return result, nil
-}
 
 
 // Javascript function
 //
 // Will pass back a bunch of pixels, (though array), in [RGBA] format
 func GetNextFrame(this js.Value, args []js.Value) any {
-
-	// mouse_from_json, err := js_value_to_struct[Mouse](args[0].Get("mouse"))
-	next_frame_args, err := js_value_to_struct[Get_Next_Frame_Arguments](args[0])
-	if err != nil {
-		fmt.Println("got error from js_value_to_struct:", err)
-		panic("crash for now")
-		// log.Panicln("got error from js_value_to_struct:", err)
-	} else {
-		fmt.Printf("next_frame_args: %+v\n", next_frame_args)
-
-		recs := next_frame_args.rects
-		fmt.Println("rects:", recs, len(recs), cap(recs))
-
-		panic("Quit for now")
-	}
 
 	width  := args[0].Get("width").Int()
 	height := args[0].Get("height").Int()
@@ -349,6 +145,38 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 		rect := js_to_Rectangle(rect_array.Index(i))
 		boid_sim.Rectangles[i] = World_to_boid_rect(rect)
 	}
+
+
+	fmt.Println("boid_sim.Rectangles:", boid_sim.Rectangles, len(boid_sim.Rectangles), cap(boid_sim.Rectangles))
+
+
+	next_frame_args, err := parse_js_value_to_type[Get_Next_Frame_Arguments](args[0])
+
+	// mouse_from_json, err := js_value_to_struct[Mouse](args[0].Get("mouse"))
+	// next_frame_args, err := js_value_to_struct[Get_Next_Frame_Arguments](args[0])
+	if err != nil {
+		fmt.Println("got error from js_value_to_struct:", err)
+		panic("crash for now")
+		// log.Panicln("got error from js_value_to_struct:", err)
+	} else {
+		fmt.Printf("next_frame_args: %+v\n", next_frame_args)
+
+		// recs := next_frame_args.rects
+		// fmt.Println("rects:", recs, len(recs), cap(recs))
+
+		// panic("Quit for now")
+	}
+
+	if len(boid_sim.Rectangles) != len(next_frame_args.rects) {
+		panic("didn't get the same amount of rectangles")
+	}
+	// TODO run world_to_boid_rect() on rects
+	// for i := range next_frame_args.rects {
+	// 	rec := next_frame_args.rects[i]
+	// 	not_js_rectangle := Rectangle{rec.x, rec.y, rec.width, rec.height}
+	// 	boid_sim.Rectangles[i] = not_js_rectangle
+	// }
+
 
 
 	input = Update_Input(
