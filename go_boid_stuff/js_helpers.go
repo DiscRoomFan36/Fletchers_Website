@@ -203,6 +203,9 @@ func reflect_kind_to_js_type(kind reflect.Kind) js.Type {
 
 	case reflect.Struct:  { return js.TypeObject  }
 	case reflect.Slice:   { return js.TypeObject  }
+	case reflect.Map:     { return js.TypeObject  }
+
+	case reflect.String:  { return js.TypeString  }
 
 	default: { panic(fmt.Errorf("unknown kind of type %v", kind)) }
 	}
@@ -214,98 +217,129 @@ func parse_js_value_to_type[T any](js_value js.Value) (T, error) {
 	var result T
 
 	reflected_type := reflect.ValueOf(&result).Elem()
-	err := parse_js_value_to_reflected_type(js_value, reflected_type)
+	err := parse_js_value_to_type_helper(js_value, reflected_type, "result")
 
 	return result, err
 }
 
-// TODO make accept non structs at first...
-func parse_js_value_to_reflected_type(js_value js.Value, reflected_type reflect.Value) error {
-	// if reflected_type.Kind() != reflect.Pointer {
-	// 	panic("must point to something, so we can set it.")
-	// }
+// do not call this function, it is for internal use only
+func parse_js_value_to_type_helper(js_value js.Value, reflected_type reflect.Value, name string) error {
+	if !reflected_type.CanSet() { panic("cannot set reflected type for some reason?") }
 
-	if reflected_type.Kind() != reflect.Struct { panic("TODO must be a struct in this function.") }
+	switch reflected_type.Kind() {
+	case reflect.Bool    : { reflected_type.SetBool (      js_value.Bool() ) }
+	case reflect.Int     : { reflected_type.SetInt  (int64(js_value.Int()) ) }
+	case reflect.Float32 : { reflected_type.SetFloat(      js_value.Float()) }
 
-	// this assumes this is a struct...
-	for i := range reflected_type.NumField() {
-		field_value := reflected_type.Field(i)
-		struct_field := reflected_type.Type().Field(i)
-		js_field := js_value.Get(struct_field.Name)
+	case reflect.Struct: {
 
-		{ // quickly check the type of js.value
-			current_type_kind := field_value.Kind()
-			current_js_type   := js_field.Type()
+		// check if the type is js.value, this just means the user
+		// has no idea how to type this thing correctly, so we are
+		// just going to pass the whole thing to them
+		if reflected_type.Type() == reflect.TypeFor[js.Value]() {
 
-			correct_js_type := reflect_kind_to_js_type(current_type_kind)
+			reflected_js_field := reflect.ValueOf(js_value)
+			reflected_type.Set(reflected_js_field)
 
-			if correct_js_type != current_js_type {
-				return fmt.Errorf("element of type '%s' expects a js.value of type '%s', got '%s' instead", current_type_kind.String(), correct_js_type.String(), current_js_type.String())
-			}
-		}
+		} else {
 
-		// fell down a massive rabbit hole, thank you random medium article.
-		//
-		// this funny check makes it so you can set unexported fields
-		//
-		// https://medium.com/@darshan.na185/modifying-private-variables-of-a-struct-in-go-using-unsafe-and-reflect-5447b3019a80
-		if !field_value.CanSet() {
-			// nice try golang, you cant stop me from touching this memory.
-			pointer_to_field_anyway := unsafe.Pointer(field_value.UnsafeAddr())
-			field_value = reflect.NewAt(field_value.Type(), pointer_to_field_anyway).Elem()
-		}
+			// lets parse all the fields!
+			for i := range reflected_type.NumField() {
+				field_value  := reflected_type.Field(i)
+				struct_field := reflected_type.Type().Field(i)
 
-		switch field_value.Kind() {
-		case reflect.Bool    : { field_value.SetBool (      js_field.Bool() ) }
-		case reflect.Int     : { field_value.SetInt  (int64(js_field.Int()) ) }
-		case reflect.Float32 : { field_value.SetFloat(      js_field.Float()) }
+				js_field     := js_value.Get(struct_field.Name)
 
-		case reflect.Struct: {
+				{ // quickly check the type of js.value
+					current_type_kind := field_value.Kind()
+					current_js_type   := js_field.Type()
 
-			// check if the type is js.value, this just means the user
-			// has no idea how to type this thing correctly, so we are
-			// just going to pass the whole thing to them
-			if field_value.Type() == reflect.TypeFor[js.Value]() {
-				// if this dosn't work, we will just use 'set_unsafe_pointer_to_T()'
-				reflected_js_field := reflect.ValueOf(js_field)
-				field_value.Set(reflected_js_field)
+					correct_js_type   := reflect_kind_to_js_type(current_type_kind)
 
-				// set_unsafe_pointer_to_T(item.base_pointer, item.js_value)
-			} else {
+					if correct_js_type != current_js_type {
+						return fmt.Errorf("element of type '%s' expects a js.value of type '%s', got '%s' instead", current_type_kind.String(), correct_js_type.String(), current_js_type.String())
+					}
+				}
+
+				// fell down a massive rabbit hole, thank you random medium article.
+				//
+				// this funny check makes it so you can set unexported fields
+				//
+				// https://medium.com/@darshan.na185/modifying-private-variables-of-a-struct-in-go-using-unsafe-and-reflect-5447b3019a80
+				if !field_value.CanSet() {
+					// nice try golang, you cant stop me from touching this memory.
+					pointer_to_field_anyway := unsafe.Pointer(field_value.UnsafeAddr())
+					field_value = reflect.NewAt(field_value.Type(), pointer_to_field_anyway).Elem()
+				}
 
 				// lets get recursive!
-				err := parse_js_value_to_reflected_type(js_field, field_value)
+				err := parse_js_value_to_type_helper(js_field, field_value, struct_field.Name)
 				if err != nil {
-					return fmt.Errorf("when parsing field %s, got error: %v", struct_field.Name, err)
+					return fmt.Errorf("when parsing field %s in %s, got error: %v", struct_field.Name, name, err)
 				}
 			}
 		}
+	}
 
-		case reflect.Slice: {
-			// fmt.Println("lets do slices later...")
+	case reflect.Slice: {
+		// check if its an actual slice.
+		if !js_object_is_array(js_value) {
+			return fmt.Errorf("js object when trying to parse %v is not an array, it is an object with keys", name)
+		}
 
-			js_array_len := js_field.Length()
+		js_array_len := js_value.Length()
 
-			field_value.Grow(js_array_len)
-			field_value.SetLen(js_array_len)
+		reflected_type.Grow(js_array_len)
+		reflected_type.SetLen(js_array_len)
 
-			for array_index := range js_array_len {
-				item_at_index := field_value.Index(array_index)
+		for array_index := range js_array_len {
+			item_at_index := reflected_type.Index(array_index)
 
-				err := parse_js_value_to_reflected_type(js_field.Index(array_index), item_at_index)
-				if err != nil {
-					return fmt.Errorf("when parsing slice %s, got error: %v", struct_field.Name, err)
-				}
+			err := parse_js_value_to_type_helper(js_value.Index(array_index), item_at_index, fmt.Sprintf("%s-%d", name, array_index))
+			if err != nil {
+				return fmt.Errorf("when parsing slice %s, got error: %v", name, err)
+			}
+		}
+	}
+
+	case reflect.Map: {
+		key_type   := reflected_type.Type().Key()
+		value_type := reflected_type.Type().Elem() // hope this is the right thing
+
+		if key_type.Kind() != reflect.String {
+			return fmt.Errorf("when trying to parse '%s', only maps with string keys are accepted, got type '%v'", name, key_type)
+		}
+
+		// check if this is actually an array, we do strict type checking here.
+		if js_object_is_array(js_value) {
+			return fmt.Errorf("when trying to parse '%s', js object was an array, not an object with keys.", name)
+		}
+
+		keys := js_get_keys_for_object(js_value)
+
+		{ // make a new map, cannot assign to nil map
+			new_reflected_map := reflect.MakeMapWithSize(reflected_type.Type(), len(keys))
+			reflected_type.Set(new_reflected_map)
+		}
+
+		for _, key := range keys {
+			new_js_field := js_value.Get(key)
+			new_value := reflect.New(value_type).Elem()
+
+			err := parse_js_value_to_type_helper(new_js_field, new_value, fmt.Sprintf("%s[%s]", name, key))
+			if err != nil {
+				return fmt.Errorf("when parsing %s into map[string]%s, with key '%s', got error: %v", name, value_type, key, err)
 			}
 
+			reflected_type.SetMapIndex(reflect.ValueOf(key), new_value)
 		}
+	}
 
-		default: {
-			fmt.Println("Got unknown type:", field_value.Type())
-			panic("Unknown type")
-			// fmt.Println("don't crash for now. lest just see how this goes")
-		}
-		}
+	default: {
+		fmt.Println("Got unknown type:", reflected_type.Type())
+		panic("Unknown type")
+		// fmt.Println("don't crash for now. lest just see how this goes")
+	}
 	}
 
 	return nil
@@ -313,4 +347,27 @@ func parse_js_value_to_reflected_type(js_value js.Value, reflected_type reflect.
 
 
 // NOTE: I would make a test here, but syscall/js is not having a good time.
+
+
+func js_object_is_array(js_value js.Value) bool {
+	js_array_constructor := js.Global().Get("Array")
+	is_a_js_array        := js_array_constructor.Call("isArray", js_value).Bool()
+	return is_a_js_array
+}
+
+// TODO error checking in here
+func js_get_keys_for_object(js_value js.Value) []string {
+
+	// this thing has a lot of good functions in it.
+	js_object_constructor := js.Global().Get("Object")
+
+	keys_as_js_array := js_object_constructor.Call("keys", js_value)
+
+	result := make([]string, keys_as_js_array.Length())
+	for i := range keys_as_js_array.Length() {
+		result[i] = keys_as_js_array.Index(i).String()
+	}
+
+	return result
+}
 

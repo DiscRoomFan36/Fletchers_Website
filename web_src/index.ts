@@ -68,10 +68,10 @@ interface Vec2 {
 };
 
 interface Rect {
-    x      : number;
-    y      : number;
-    width  : number;
-    height : number;
+    x : number;
+    y : number;
+    w : number;
+    h : number;
 };
 
 interface Mouse {
@@ -91,11 +91,11 @@ const mouse: Mouse = {
 
 function dom_rect_to_rect(dom_rect: DOMRect): Rect {
     return {
-        x      : dom_rect.x,
-        y      : dom_rect.y,
-        width  : dom_rect.width,
+        x : dom_rect.x,
+        y : dom_rect.y,
+        w : dom_rect.width,
         // to account for letters like 'j'
-        height : dom_rect.height + 5,
+        h : dom_rect.height + 5,
     };
 };
 
