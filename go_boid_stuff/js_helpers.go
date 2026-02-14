@@ -214,6 +214,37 @@ func parse_js_value_to_type_helper(js_value js.Value, reflected_type reflect.Val
 }
 
 
+// func thing_to_js_value[T any](thing T) js.Value {
+// 	var helper func(reflected_value reflect.Value) js.Value
+// 	helper =   func(reflected_value reflect.Value) js.Value {
+
+// 		switch reflected_value.Kind() {
+// 		case reflect.Bool    : { return js.ValueOf(reflected_value.Bool()  ) }
+// 		case reflect.Int     : { return js.ValueOf(reflected_value.Int()   ) }
+// 		case reflect.Float32 : { return js.ValueOf(reflected_value.Float() ) }
+// 		case reflect.Float64 : { return js.ValueOf(reflected_value.Float() ) }
+// 		case reflect.String  : { return js.ValueOf(reflected_value.String()) }
+
+// 		case reflect.Struct  : {
+// 			new_js_value := js.ValueOf(make(map[string]any))
+
+// 			struct_type := reflected_value.Type()
+// 			for i := range reflected_value.NumField() {
+// 				this_field        := reflected_value.Field(i)
+// 				this_struct_field := struct_type.Field(i)
+
+// 				new_js_value.Set(this_struct_field.Name, helper(this_field))
+// 			}
+
+// 			return new_js_value
+// 		}
+
+// 		default: { panic("thing_to_js_value: Unknown type in reflection") }
+// 		}
+// 	}
+
+// 	return helper(reflect.ValueOf(thing))
+// }
 
 
 func js_object_is_array(js_value js.Value) bool {
