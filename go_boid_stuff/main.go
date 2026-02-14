@@ -98,7 +98,7 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 			right_down   bool
 		}
 
-		rects []Rectangle
+		rectangles []Rectangle
 	}
 
 	next_frame_args, err := parse_js_value_to_type[Get_Next_Frame_Arguments](args[0])
@@ -107,10 +107,11 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 	}
 
 	next_frame_args.mouse.pos = Mult(next_frame_args.mouse.pos, Boid_Float(BOID_SCALE))
-	for i := range next_frame_args.rects {
-		next_frame_args.rects[i] = World_to_boid_rect(next_frame_args.rects[i])
+	for i := range next_frame_args.rectangles {
+		next_frame_args.rectangles[i] = World_to_boid_rect(next_frame_args.rectangles[i])
 	}
-	boid_sim.Rectangles = next_frame_args.rects
+	// just changing this directly is probably bad
+	boid_sim.Rectangles = next_frame_args.rectangles
 
 	input = Update_Input(
 		input,

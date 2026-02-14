@@ -18,7 +18,7 @@ interface Get_Next_Frame_Arguments {
     mouse: Mouse;
 
     // TODO cannot change this name without messing up other code.
-    rects: Rect[];
+    rectangles: Rect[];
 };
 
 // NOTE we *CAN* change these names, the 'get_go_functions()' handles the real names
@@ -173,7 +173,7 @@ function render_boids(display: Display, go: Go_Functions) {
 
         mouse: mouse,
 
-        rects: collidable_rectangles,
+        rectangles: collidable_rectangles,
     };
 
     const num_bytes_filled = go.get_next_frame(args);
