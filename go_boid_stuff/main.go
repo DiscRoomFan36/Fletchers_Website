@@ -79,8 +79,6 @@ func SetProperties(this js.Value, args []js.Value) any {
 
 
 
-
-
 // Javascript function
 //
 // Will pass back a bunch of pixels, (though array), in [RGBA] format
@@ -121,15 +119,12 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 		next_frame_args.mouse.pos,
 	)
 
-	// img.Resize_Image(width, height)
 	img.Resize_Image(next_frame_args.width, next_frame_args.height)
 
 	// TODO theres a bug here if you full screen a window...
 
 	// Cool boid thing that makes the boid follow the screen
 	// TODO maybe remove until later.
-	// boid_sim.Width  = World_to_boid(Boid_Float(width))
-	// boid_sim.Height = World_to_boid(Boid_Float(height))
 	boid_sim.Width  = World_to_boid(Boid_Float(next_frame_args.width))
 	boid_sim.Height = World_to_boid(Boid_Float(next_frame_args.height))
 
@@ -152,7 +147,6 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 	Draw_Everything(&img, &boid_sim, dt, input)
 
 	// copy the pixels, must be in RGBA format
-	// copied_bytes := js.CopyBytesToJS(array, img.To_RGBA_byte_array())
 	copied_bytes := js.CopyBytesToJS(next_frame_args.buffer, img.To_RGBA_byte_array())
 	return copied_bytes
 }
