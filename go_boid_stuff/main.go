@@ -78,37 +78,6 @@ func SetProperties(this js.Value, args []js.Value) any {
 }
 
 
-func js_to_Vector(obj js.Value) Vec2[Boid_Float] {
-	result := Vec2[float64]{
-		x: obj.Get("x").Float(),
-		y: obj.Get("y").Float(),
-	}
-	return Transform[float64, Boid_Float](result)
-}
-func js_to_Rectangle(obj js.Value) Rectangle {
-	result := Rectangle{
-		x: Boid_Float(obj.Get("x").Float()),
-		y: Boid_Float(obj.Get("y").Float()),
-		w: Boid_Float(obj.Get("w").Float()),
-		h: Boid_Float(obj.Get("h").Float()),
-	}
-	return result
-}
-
-
-type Get_Next_Frame_Arguments struct {
-	width, height int
-	buffer js.Value
-	mouse Mouse
-	rects []Rectangle
-}
-
-type Mouse struct {
-	pos          Vec2[Boid_Float]
-	left_down    bool
-	middle_down  bool
-	right_down   bool
-}
 
 
 
@@ -116,8 +85,21 @@ type Mouse struct {
 //
 // Will pass back a bunch of pixels, (though array), in [RGBA] format
 func GetNextFrame(this js.Value, args []js.Value) any {
-
 	if len(args) != 1 { log.Panicf("GetNextFrame: got incorrect number of arguments, wanted 1, got %v", len(args)) }
+
+	type Get_Next_Frame_Arguments struct {
+		width, height int
+		buffer js.Value
+
+		mouse struct {
+			pos          Vec2[Boid_Float]
+			left_down    bool
+			middle_down  bool
+			right_down   bool
+		}
+
+		rects []Rectangle
+	}
 
 	next_frame_args, err := parse_js_value_to_type[Get_Next_Frame_Arguments](args[0])
 	if err != nil {
@@ -129,80 +111,6 @@ func GetNextFrame(this js.Value, args []js.Value) any {
 		next_frame_args.rects[i] = World_to_boid_rect(next_frame_args.rects[i])
 	}
 	boid_sim.Rectangles = next_frame_args.rects
-
-	// mouse := args[0].Get("mouse")
-
-	// mouse_pos := js_to_Vector(mouse.Get("pos"))
-	// mouse_pos = Mult(mouse_pos, BOID_SCALE)
-
-	// rect_array := args[0].Get("rects")
-	// rect_array_length := rect_array.Length()
-
-	// // TODO this is kinda fragile.
-	// if len(boid_sim.Rectangles) < rect_array_length {
-	// 	boid_sim.Rectangles = make([]Rectangle, rect_array_length)
-	// }
-
-	// for i := range rect_array.Length() {
-	// 	rect := js_to_Rectangle(rect_array.Index(i))
-	// 	boid_sim.Rectangles[i] = World_to_boid_rect(rect)
-	// }
-
-
-	// fmt.Println("boid_sim.Rectangles:", boid_sim.Rectangles, len(boid_sim.Rectangles), cap(boid_sim.Rectangles))
-
-	// {
-	// 	keys := js_get_keys_for_object(args[0])
-	// 	fmt.Println(keys)
-
-	// 	keys = js_get_keys_for_object(args[0].Get("rects"))
-	// 	fmt.Println(keys)
-
-	// 	// type Foo struct {
-	// 	// 	mouse map[string]js.Value
-	// 	// }
-	// 	foo, err := parse_js_value_to_type[map[string]js.Value](args[0])
-	// 	fmt.Println(foo, err)
-
-	// 	panic("check if this works")
-	// }
-
-	// next_frame_args, err := parse_js_value_to_type[Get_Next_Frame_Arguments](args[0])
-
-	// // mouse_from_json, err := js_value_to_struct[Mouse](args[0].Get("mouse"))
-	// // next_frame_args, err := js_value_to_struct[Get_Next_Frame_Arguments](args[0])
-	// if err != nil {
-	// 	fmt.Println("got error from js_value_to_struct:", err)
-	// 	panic("crash for now")
-	// 	// log.Panicln("got error from js_value_to_struct:", err)
-	// } else {
-	// 	fmt.Printf("next_frame_args: %+v\n", next_frame_args)
-
-	// 	// recs := next_frame_args.rects
-	// 	// fmt.Println("rects:", recs, len(recs), cap(recs))
-
-	// 	// panic("Quit for now")
-	// }
-
-	// if len(boid_sim.Rectangles) != len(next_frame_args.rects) {
-	// 	panic("didn't get the same amount of rectangles")
-	// }
-	// TODO run world_to_boid_rect() on rects
-	// for i := range next_frame_args.rects {
-	// 	rec := next_frame_args.rects[i]
-	// 	not_js_rectangle := Rectangle{rec.x, rec.y, rec.width, rec.height}
-	// 	boid_sim.Rectangles[i] = not_js_rectangle
-	// }
-
-
-
-	// input = Update_Input(
-	// 	input,
-	// 	mouse.Get("left_down")  .Bool(),
-	// 	mouse.Get("middle_down").Bool(),
-	// 	mouse.Get("right_down") .Bool(),
-	// 	mouse_pos,
-	// )
 
 	input = Update_Input(
 		input,
