@@ -1,22 +1,22 @@
 package main
 
 import (
-	"math"
-	"math/rand"
-	"time"
-	"unsafe"
+    "math"
+    "math/rand"
+    "time"
+    "unsafe"
 )
 
 // good old swap and remove
 func Remove_Unordered[T any](s *[]T, index int) {
-	if index != len(*s)-1 {
-		(*s)[index] = (*s)[len(*s)-1]
-	}
-	*s = (*s)[:len(*s)-1]
+    if index != len(*s)-1 {
+        (*s)[index] = (*s)[len(*s)-1]
+    }
+    *s = (*s)[:len(*s)-1]
 }
 
 func Remove_Ordered[T any](s *[]T, index int) {
-	*s = append((*s)[:index], (*s)[index+1:]...)
+    *s = append((*s)[:index], (*s)[index+1:]...)
 }
 
 
@@ -31,13 +31,13 @@ func Remove_Ordered[T any](s *[]T, index int) {
 // ...don't have a pressing need for one of those though...
 // ...Also i hate the iterating thing in this language...
 func Append[T any](s *[]T, elems ...T) {
-	*s = append(*s, elems...)
+    *s = append(*s, elems...)
 }
 
 func Pop[T any](slice *[]T) T {
-	item  := (*slice)[ len(*slice)-1]
-	*slice = (*slice)[:len(*slice)-1]
-	return item
+    item  := (*slice)[ len(*slice)-1]
+    *slice = (*slice)[:len(*slice)-1]
+    return item
 }
 
 
@@ -57,53 +57,53 @@ func Div_Ceil[T Int](x, y T) T { return (x + y - 1) / y }
 // floating point mod, always returns a number [0, 1)
 // Modf but better.
 func mod1[T Float](x T) T {
-	_, a_f64 := math.Modf(float64(x))
+    _, a_f64 := math.Modf(float64(x))
 
-	// assert(abs(a) < 1)
-	a := T(a_f64)
-	// if the sign was negative, make it positive,
-	if a < 0 { return 1 + a
-	} else   { return a }
+    // assert(abs(a) < 1)
+    a := T(a_f64)
+    // if the sign was negative, make it positive,
+    if a < 0 { return 1 + a
+    } else   { return a }
 }
 
 func Clamp[T Number](x, mini, maxi T) T {
-	// TODO remove this?
-	if mini > maxi { panic("mini was bigger than maxi") }
+    // TODO remove this?
+    if mini > maxi { panic("mini was bigger than maxi") }
 
-	if x < mini { return mini }
-	if x > maxi { return maxi }
-	return x
+    if x < mini { return mini }
+    if x > maxi { return maxi }
+    return x
 }
 
 func Lerp[T Float](a, b, t T) T { return (1-t)*a + t*b }
 
 
 func Abs[T Number](x T) T {
-	// this would be faster if the type was known but w/e
-	if x < 0 { x = -x }
-	return x
+    // this would be faster if the type was known but w/e
+    if x < 0 { x = -x }
+    return x
 }
 
 // To Nearest Whole number
 func Round[T Number](x T) int {
-	// Adds 0.5, works for ints and floats, look out for overflow
-	var rounded int
-	if x > 0 { rounded = int((x*2 + 1) / 2)
-	} else {   rounded = int((x*2 - 1) / 2) }
+    // Adds 0.5, works for ints and floats, look out for overflow
+    var rounded int
+    if x > 0 { rounded = int((x*2 + 1) / 2)
+    } else {   rounded = int((x*2 - 1) / 2) }
 
-	return rounded
+    return rounded
 }
 
 
 func Sloppy_Equal[T Float](a, b T) bool {
-	// some small number
-	const EPSILON = 0.000000001
-	return Abs(a - b) < EPSILON
+    // some small number
+    const EPSILON = 0.000000001
+    return Abs(a - b) < EPSILON
 }
 
 // outputs a number from [0, b). ignore the float64. go math module is dumb.
 func Proper_Mod[T Float](a, b T) T {
-	return T(math.Mod(math.Mod(float64(a), float64(b))+float64(b), float64(b)))
+    return T(math.Mod(math.Mod(float64(a), float64(b))+float64(b), float64(b)))
 }
 
 func Square[T Number](x T) T { return x * x }
@@ -123,30 +123,30 @@ func rand_n(n int) int { return rand.Intn(n) }
 const NANOS_PER_SECOND = 1000*1000*1000
 // in seconds since unix epoch
 func Get_Time() float64 {
-	nanos := time.Now().UnixNano()
-	return float64(nanos) / NANOS_PER_SECOND
+    nanos := time.Now().UnixNano()
+    return float64(nanos) / NANOS_PER_SECOND
 }
 
 const REPEAT_TIME = 10000
 // a time between 0 and REPEAT_TIME
 func Get_Time_Repeating() float64 {
-	return math.Mod(Get_Time(), REPEAT_TIME)
+    return math.Mod(Get_Time(), REPEAT_TIME)
 }
 
 
 
 // great function to have.
 func Unsafe_Slice_Transmute[T any, U any](slice []T) []U {
-	var x T; var y U
-	T_size := unsafe.Sizeof(x)
-	U_size := unsafe.Sizeof(y)
+    var x T; var y U
+    T_size := unsafe.Sizeof(x)
+    U_size := unsafe.Sizeof(y)
 
-	flag := false
-	if U_size >= T_size { flag = (U_size % T_size != 0)
-	} else {              flag = (T_size % U_size != 0) }
-	if flag { panic("T and U must have sizes that are multiples of each other") }
+    flag := false
+    if U_size >= T_size { flag = (U_size % T_size != 0)
+    } else {              flag = (T_size % U_size != 0) }
+    if flag { panic("T and U must have sizes that are multiples of each other") }
 
-	data := unsafe.Pointer(unsafe.SliceData(slice))
-	size := uintptr(len(slice)) * T_size / U_size
-	return unsafe.Slice((*U)(data), size)
+    data := unsafe.Pointer(unsafe.SliceData(slice))
+    size := uintptr(len(slice)) * T_size / U_size
+    return unsafe.Slice((*U)(data), size)
 }
