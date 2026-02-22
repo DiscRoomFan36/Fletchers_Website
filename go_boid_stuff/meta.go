@@ -69,11 +69,11 @@ func Get_property_structs() map[string]Property_Struct {
 func set_boid_defaults(boid_sim *Boid_simulation) {
 	property_structs := Get_property_structs()
 
-	s := reflect.ValueOf(&boid_sim.props).Elem()
+	properties_reflected := reflect.ValueOf(&boid_sim.props).Elem()
 
 	for name, prop_struct := range property_structs {
 
-		settable_field := s.FieldByName(name)
+		settable_field := properties_reflected.FieldByName(name)
 
 		switch prop_struct.Property_type {
 		case Property_Float: settable_field.SetFloat(prop_struct.Float_default)
@@ -105,11 +105,13 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 
 	if bad_name { log.Fatalf("ERROR: There was a bad name.\n") }
 
+	properties_reflected := reflect.ValueOf(&boid_sim.props).Elem()
+
 	for name, union := range the_map {
 
 		prop_struct := property_structs[name]
 
-		settable_field := reflect.ValueOf(&boid_sim.props).Elem().FieldByName(name)
+		settable_field := properties_reflected.FieldByName(name)
 
 		switch prop_struct.Property_type {
 		case Property_Float: settable_field.SetFloat(union.As_float)
@@ -129,12 +131,10 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 func create_property_structs() map[string]Property_Struct {
 	property_structs := make(map[string]Property_Struct, 0)
 
-	boid_sim := Boid_simulation{}
-	s := reflect.ValueOf(&boid_sim.props).Elem()
-	typeOfT := s.Type()
+	property_struct_type := reflect.TypeFor[Property_Struct]()
 
-	for i := range s.NumField() {
-		field := typeOfT.Field(i)
+	for i := range property_struct_type.NumField() {
+		field := property_struct_type.Field(i)
 
 		name := field.Name
 		tag := field.Tag
@@ -171,7 +171,7 @@ func create_property_structs() map[string]Property_Struct {
 
 		struct_field_flags := Flag_None
 
-		// TODO maybe split the parseing into different functions?
+		// TODO maybe split the parsing into different functions?
 
 		for len(tag_split) > 0 {
 			left, right := tag_property_to_parts(tag_split[0])
