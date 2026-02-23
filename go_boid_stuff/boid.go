@@ -158,7 +158,7 @@ func (boid_sim *Boid_simulation) bounds_as_rect() Rectangle {
 
 
 // NOTE dt is in seconds
-func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input Input_Status) {
+func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input User_Input) {
     now := time.Now();
 
     // ------------------------------------------------------
@@ -166,8 +166,8 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input Input_Statu
     // ------------------------------------------------------
 
     // make a little splash effect on left click.
-    if user_input.Left_Clicked {
-        Append(&boid_sim.Click_Positions_And_Times, Position_And_Time{user_input.Mouse_Pos, now});
+    if user_input.Left.Clicked {
+        Append(&boid_sim.Click_Positions_And_Times, Position_And_Time{user_input.Mouse_Position, now});
     }
     for i := 0; i < len(boid_sim.Click_Positions_And_Times); i++ {
         // remove if its been to long.
@@ -180,19 +180,19 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input Input_Statu
     }
 
     // make a new wall on right click and drag
-    if user_input.Middle_Clicked {
+    if user_input.Middle.Clicked {
         boid_sim.making_new_wall = true;
-        boid_sim.new_wall_start = user_input.Mouse_Pos;
+        boid_sim.new_wall_start = user_input.Mouse_Position;
     }
     if boid_sim.making_new_wall {
-        if user_input.Middle_Released {
+        if user_input.Middle.Released {
             boid_sim.making_new_wall = false;
 
             // middle click must be held down for some time until it counts as a drag movement.
-            if user_input.Middle_Held_Prev {
+            if user_input.Middle.Held_Previously {
                 new_line := Line{
                     boid_sim.new_wall_start.x, boid_sim.new_wall_start.y,
-                    user_input.Mouse_Pos.x, user_input.Mouse_Pos.y,
+                    user_input.Mouse_Position.x, user_input.Mouse_Position.y,
                 };
 
                 Append(&boid_sim.Walls, new_line);
@@ -215,9 +215,9 @@ const ONE_TICK_DT = 1.0 / 60;
 // TODO don't really want user input in here... would feel cleaner if this
 // function stood on its own. only thing it needs from user input is left
 // down drawing boids towards the cursor.
-func (boid_sim *Boid_simulation) do_one_tick(user_input Input_Status) {
+func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
 
-    { // spawn / despawn boids.
+    { // spawn / de-spawn boids.
         // TODO this could maybe do a ramp up / down?
         boid_sim.spawn_timer += ONE_TICK_DT;
 
@@ -462,9 +462,9 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input Input_Status) {
     //            Mouse stuff
     // ------------------------------------
     // on mouse down, move all boids towards mouse.
-    if user_input.Left_Down {
+    if user_input.Left.Down {
         for i := range len(boid_sim.Boids) {
-            toward_mouse := Sub(user_input.Mouse_Pos, boid_sim.Boids[i].Position);
+            toward_mouse := Sub(user_input.Mouse_Position, boid_sim.Boids[i].Position);
             force := Mult(Normalized(toward_mouse), boid_sim.properties.Mouse_Draw_Factor);
             boid_sim.Boids[i].Acceleration.Add(force);
         }

@@ -1,117 +1,83 @@
-package main;
+package main
 
-import "time";
+import "time"
 
 // how long until something is considered 'held', in seconds.
 const HELD_TIME = 0.10;
 
-// TODO compress this,
-// 
-// make api status.Left.Down or something
-type Input_Status struct {
-    Left_Down           bool;
-    Middle_Down         bool;
-    Right_Down          bool;
+type User_Input struct {
+    Mouse_Position            Vec2[Boid_Float];
+    Mouse_Position_Previously Vec2[Boid_Float];
 
-    Left_Clicked        bool;
-    Middle_Clicked      bool;
-    Right_Clicked       bool;
-
-    Left_Released       bool;
-    Middle_Released     bool;
-    Right_Released      bool;
-
-    // if the mouse was held down for more than HELD_TIME
-    Left_Held           bool;
-    Middle_Held         bool;
-    Right_Held          bool;
-
-    // useful if you wanna do something on release, but not after being held.
-    Left_Held_Prev      bool;
-    Middle_Held_Prev    bool;
-    Right_Held_Prev     bool;
-
-    Mouse_Pos Vec2[Boid_Float];
-    Mouse_Pos_Prev Vec2[Boid_Float];
+    //
+    // left middle and right mouse buttons.
+    //
+    // should i prefix these with mouse?
+    //
+    // like putting them in a struct with the mouse position, so we can remove the prefix there,
+    //
+    // however, mouse buttons are ubiquitous, or at least thats my excuse.
+    //
+    Left, Middle, Right Single_Mouse_Button;
 
     // TODO middle mouse scroll
     // TODO keyboard inputs?
-
-    // private stuff for calculations
-
-    // probably could compress a lot of this code...
-    left_down_since     time.Time;
-    middle_down_since   time.Time;
-    right_down_since    time.Time;
 }
 
+type Single_Mouse_Button struct {
+    Down bool;
+    // if it was not down last time input was updated, but down now.
+    Clicked bool;
+    // if it was up last time, and down now.
+    Released bool;
+    // if the mouse button was held for more than HELD_TIME
+    Held bool;
+    // if it was held on the previous input, but not now.
+    Held_Previously bool;
+
+    // internal for keeping track of Held
+    down_since time.Time;
+}
+
+
+// this function takes an Input_Status and returns one,
 //
-// used to compress input into bit field. was not worth it.
-//
-// input struct is only rarely going to be accessed.
-//
-// func HasFlag[T ~int](x, flag T) bool { return x & flag != 0; }
+// maybe some day i will add rewind and playback with this.
+func Update_Input(prev User_Input, is_left_down, is_middle_down, is_right_down bool, mouse_pos Vec2[Boid_Float]) User_Input {
+    new_input_status := User_Input{};
 
-func Update_Input(prev Input_Status, is_left_down, is_middle_down, is_right_down bool, mouse_pos Vec2[Boid_Float]) Input_Status {
-    new := Input_Status{
-        Left_Down   :        is_left_down,
-        Middle_Down :        is_middle_down,
-        Right_Down  :        is_right_down,
+    new_input_status.Mouse_Position            = mouse_pos;
+    new_input_status.Mouse_Position_Previously = prev.Mouse_Position;
 
-        // Left_Clicked   :     ,
-        // Middle_Clicked :     ,
-        // Right_Clicked  :     ,
+    { // handling mouse buttons.
+        update_single_mouse_button := func(button_down bool, previous_button Single_Mouse_Button, current_time time.Time) Single_Mouse_Button {
+            new_button := Single_Mouse_Button{};
 
-        Left_Released   :    prev.Left_Down   && !is_left_down,
-        Middle_Released :    prev.Middle_Down && !is_middle_down,
-        Right_Released  :    prev.Right_Down  && !is_right_down,
+            new_button.Down            = button_down;
+            new_button.Released        = previous_button.Down && !button_down;
+            new_button.Held_Previously = previous_button.Held;
+            new_button.down_since      = previous_button.down_since;
 
-        // Left_Held   :        ,
-        // Middle_Held :        ,
-        // Right_Held  :        ,
+            // check if the previous frame did not ;have them down.
+            if button_down && !previous_button.Down {
+                new_button.Clicked = true;
+                new_button.down_since = current_time;
+            }
 
-        Left_Held_Prev   :   prev.Left_Held,
-        Middle_Held_Prev :   prev.Middle_Held,
-        Right_Held_Prev  :   prev.Right_Held,
+            // check for held.
+            if button_down && current_time.Sub(prev.Left.down_since).Seconds() >= HELD_TIME {
+                new_button.Held = true;
+            }
 
+            return new_button;
+        };
 
-        Mouse_Pos      : mouse_pos,
-        Mouse_Pos_Prev : prev.Mouse_Pos,
+        current_time := time.Now();
 
-
-        left_down_since   :  prev.left_down_since,
-        middle_down_since :  prev.middle_down_since,
-        right_down_since  :  prev.right_down_since,
-    };
-
-    now := time.Now();
-
-    { // check if the previous frame did not have them down.
-        if new.Left_Down   && !prev.Left_Down   {
-            new.Left_Clicked      = true;
-            new.left_down_since   = now;
-        }
-        if new.Middle_Down && !prev.Middle_Down {
-            new.Middle_Clicked    = true;
-            new.middle_down_since = now;
-        }
-        if new.Right_Down  && !prev.Right_Down  {
-            new.Right_Clicked     = true;
-            new.right_down_since  = now;
-        }
+        new_input_status.Left   = update_single_mouse_button(is_left_down,   prev.Left,   current_time);
+        new_input_status.Middle = update_single_mouse_button(is_middle_down, prev.Middle, current_time);
+        new_input_status.Right  = update_single_mouse_button(is_right_down,  prev.Right,  current_time);
     }
 
-    { // check for held.
-        if new.Left_Down   && now.Sub(new.left_down_since  ).Seconds() > HELD_TIME {
-            new.Left_Held   = true;
-        }
-        if new.Middle_Down && now.Sub(new.middle_down_since).Seconds() > HELD_TIME {
-            new.Middle_Held = true;
-        }
-        if new.Right_Down  && now.Sub(new.right_down_since ).Seconds() > HELD_TIME {
-            new.Right_Held  = true;
-        }
-    }
-
-    return new;
+    return new_input_status;
 }
