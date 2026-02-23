@@ -102,6 +102,20 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         Draw_Line(img, p1, p2, color);
     }
 
+
+    // get cool color for boid
+    get_boid_color := func(boid Boid) Color {
+        // 40 <- random number, no basis in reality
+        // used to be based on Max_Speed but we got rid of that
+        speed := boid.Velocity.Mag() / 40;
+
+        const SHIFT_FACTOR = 1;
+        H_part_of_HSL := math.Mod(float64(Clamp(speed, 0, 1)*360)*SHIFT_FACTOR, 360);
+
+        boid_color := HSL_to_RGB(H_part_of_HSL, 0.75, 0.6);
+        return boid_color;
+    };
+
     // NOTE i would put this in a go routine, but wasm doesn't do multithreading, fuck
     for _, b := range boid_sim.Boids {
         // put them in img space
@@ -126,16 +140,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             boid_shape[i].Add(b.Position);
         }
 
-        // get cool color for boid
-        //
-        // 40 <- random number, no basis in reality
-        // used to be based on Max_Speed but we got rid of that
-        speed := b.Velocity.Mag() / 40;
-
-        const SHIFT_FACTOR = 1;
-        H := math.Mod(float64(Clamp(speed, 0, 1)*360)*SHIFT_FACTOR, 360);
-
-        boid_color := HSL_to_RGB(H, 0.75, 0.6);
+        boid_color := get_boid_color(b);
 
         // Draw both sides
         Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[2], boid_color);
@@ -148,9 +153,64 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         }
     }
 
+    { // dead boid explosions
+        now := time.Now();
+
+        // in seconds
+        const DEAD_BOID_FADE_TIME = 1.5;
+        // in image pixels, should we add boid scale to this?
+        const DEAD_BOID_EXPLOSION_MEDIAN_RADIUS = BOID_SCALE * 25;
+
+        // remove boids that have outlived their welcome.
+        for i := 0; i < len(boid_sim.Dead_boids); i++ {
+            time_of_death := boid_sim.Dead_boids[i].time_of_death;
+            time_since_death := now.Sub(time_of_death).Seconds();
+            if time_since_death > DEAD_BOID_FADE_TIME {
+                Remove_Unordered(&boid_sim.Dead_boids, i);
+                i -= 1;
+                continue;
+            }
+        }
+
+        for _, dead_boid_and_time := range boid_sim.Dead_boids {
+            dead_boid     := dead_boid_and_time.dead_boid;
+            time_of_death := dead_boid_and_time.time_of_death;
+            random_factor := dead_boid_and_time.random_factor;
+
+            // remember to map the boid into image space.
+            //
+            // i have got to come up with a better system for this.
+            drawing_position := Mult(dead_boid.Position, SCALE_FACTOR)
+
+
+            time_since_death := now.Sub(time_of_death).Seconds();
+
+            // starts fast, ends slow.
+            factor := ease_out_quint(time_since_death / DEAD_BOID_FADE_TIME);
+
+            radius := factor * DEAD_BOID_EXPLOSION_MEDIAN_RADIUS;
+            // vary radius a bit.
+            //
+            // random factor should not be evenly distributed, i think
+            // it would feel better if it was gaussian distributed.
+            radius *= 0.75 + 0.5*random_factor;
+
+            // color starts as a bright orange, and then fades out to transparent.
+            // color := rgb(241, 131, 40);
+            color := get_boid_color(dead_boid); // use the boid color, looks cooler.
+            color.Set_Alpha(float32(1 - factor));
+
+
+            // drawing these circles is slow. we are also blending them into the image.
+            //
+            // the need for js rendering grows every day.
+            Draw_Circle_v(img, drawing_position, Boid_Float(radius), color);
+        }
+    }
+
     now := time.Now();
     for _, pos_and_time := range boid_sim.Click_Positions_And_Times {
-        pos := pos_and_time.Pos;
+        pos := pos_and_time.Position;
         pos.Mult(SCALE_FACTOR); // into world co-ord's
 
         time := pos_and_time.Time;

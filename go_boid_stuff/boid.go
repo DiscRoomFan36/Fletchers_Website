@@ -22,12 +22,26 @@ type Boid struct {
 }
 
 type Position_And_Time struct {
-    Pos Vec2[Boid_Float];
+    Position Vec2[Boid_Float];
     Time time.Time;
+}
+
+type Dead_Boid_Info struct {
+    dead_boid Boid;
+    time_of_death time.Time;
+    // for varying the death animation a bit. but in a
+    // consistent way for each dead boid.
+    //
+    // between [0, 1]
+    random_factor float64;
 }
 
 type Boid_simulation struct {
     Boids []Boid;
+
+    // were all bad boids go when they die, we use this for a
+    // cool death animation.
+    Dead_boids []Dead_Boid_Info;
 
     // this is the bounds of the boid simulation. boids can go
     // outside of this, (if wrapping is disabled). its just a guideline.
@@ -72,8 +86,16 @@ type Boid_simulation struct {
 }
 
 func New_boid_simulation(width, height Boid_Float) Boid_simulation {
+    // originally i was thinking i could know where all my memory came
+    // from, and try to acquire it at startup, but go really doesn't
+    // like that, and im past caring about my memory when its not a
+    // performance issue, yet.
+    const INITIAL_SPACE_FOR_STUFF = 512;
+
     boid_sim := Boid_simulation{
-        Boids: make([]Boid, 0, 512),
+        Boids: make([]Boid, 0, INITIAL_SPACE_FOR_STUFF),
+
+        Dead_boids: make([]Dead_Boid_Info, 0, INITIAL_SPACE_FOR_STUFF),
 
         Width:  width,
         Height: height,
@@ -113,6 +135,19 @@ func (boid_sim *Boid_simulation) bounds_as_rect() Rectangle {
 }
 
 
+func (boid_sim *Boid_simulation) remove_boid_by_index(index int, time_of_death time.Time) {
+    dead_boid := boid_sim.Boids[index];
+    Remove_Unordered(&boid_sim.Boids, index);
+
+    new_dead_boid_info := Dead_Boid_Info{
+        dead_boid: dead_boid,
+        time_of_death: time_of_death,
+        random_factor: rand_f64(),
+    };
+
+    Append(&boid_sim.Dead_boids, new_dead_boid_info);
+}
+
 // NOTE dt is in seconds
 func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input User_Input) {
     now := time.Now();
@@ -123,7 +158,11 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input User_Input)
 
     // make a little splash effect on left click.
     if user_input.Left.Clicked {
-        Append(&boid_sim.Click_Positions_And_Times, Position_And_Time{user_input.Mouse_Position, now});
+        new_click_and_time := Position_And_Time{
+            user_input.Mouse_Position,
+            now,
+        }
+        Append(&boid_sim.Click_Positions_And_Times, new_click_and_time);
     }
     for i := 0; i < len(boid_sim.Click_Positions_And_Times); i++ {
         // remove if its been to long.
@@ -174,6 +213,10 @@ const ONE_TICK_DT = 1.0 / 60;
 func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
 
     { // spawn / de-spawn boids.
+        // want time things to be consistent, but the only time
+        // thing is the dead boid time.
+        current_time_for_dead_boid_things := time.Now();
+
         // TODO this could maybe do a ramp up / down?
         boid_sim.spawn_timer += ONE_TICK_DT;
 
@@ -220,7 +263,8 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
                 // do it randomly so its cooler.
 
                 random_index := rand_n(len(boid_sim.Boids));
-                Remove_Unordered(&boid_sim.Boids, random_index);
+
+                boid_sim.remove_boid_by_index(random_index, current_time_for_dead_boid_things);
             }
         }
     }

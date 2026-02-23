@@ -58,13 +58,12 @@ DONE
 * fix boid waterfall? and maybe them showing up over my email at the bottom.
 * make proper profiling tools... nah, just trust that the crome profiler.
 * speed up the simulation, would like at least 3000 boids at once, the slow part is the rendering. it's fast enough now, if i really wanted more boids, i would convert the rendering to js calls, but maybe later.
-
+* make boids explode when de-spawned
 
 
 NEXT
 
-* make boids explode when de-spawned
-* maybe instead of all that collision code, i can just explode the boids
+* maybe instead of all that collision code, i can just explode the boids if they hit something? 
 
 * every boid should have a "go here" marker, that they are drawn towards, if they reach it, get another marker. make the boids flow around the screen, clockwise or counterclockwise
 
