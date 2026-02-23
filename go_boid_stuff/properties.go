@@ -70,11 +70,14 @@ type Properties struct {
 
     // TODO i would like the category to be "Debug Draw" (without the '_'),
     // but i parse the tags in a dumb way, maybe later.
-    Debug_Draw_Spacial_Array bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Boundary      bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Heading       bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Visual_Ranges bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Rectangles    bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    //
+    // TODO extra spaces are also bad apparently...
+    Debug_Draw_Spacial_Array  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Boundary       bool `Property:"bool" Default:"true" Category:"Debug_Draw"`;
+    Debug_Draw_Heading        bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Visual_Ranges  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Rectangles     bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Mouse_Position bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
 }
 
 
@@ -397,7 +400,7 @@ func contains[T comparable, U any](m map[T]U, key T) bool {
 func tag_property_to_parts(prop string) (string, string) {
     ok, left, right := split_once(prop, ":");
 
-    if !ok { log.Panicf("malformed tag, was '%v'\n", prop); }
+    if !ok { log.Panicf("tag_property_to_parts: malformed tag (did not have ':'), was '%v'\n", prop); }
 
     if right[0] != '"' || right[len(right)-1] != '"' { log.Panicf("malformed tag, was '%v'\n", prop); }
     right = right[1:len(right)-1]; // Remove quotes.
