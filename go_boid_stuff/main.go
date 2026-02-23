@@ -11,7 +11,7 @@ import (
 var img Image;
 
 var boid_sim Boid_simulation;
-var input Input_Status;
+var user_input_this_frame Input_Status;
 
 var last_frame_time time.Time;
 
@@ -87,9 +87,12 @@ func GetNextFrame(this js.Value, args []js.Value) any {
     }
 
     type Get_Next_Frame_Arguments struct {
+        // width and height that javascript wants us to draw into
         width, height int;
+        // the buffer we will be drawing pixels onto,
         buffer js.Value;
 
+        // mouse status, we construct more useful things from this small amount of info.
         mouse struct {
             pos          Vec2[Boid_Float];
             left_down    bool;
@@ -97,6 +100,8 @@ func GetNextFrame(this js.Value, args []js.Value) any {
             right_down   bool;
         };
 
+        // rectangles, aka the text on screen, probably need a better method for this stuff
+        // but for now these are things that the boids will collide against.
         rectangles []Rectangle;
     }
 
@@ -112,8 +117,9 @@ func GetNextFrame(this js.Value, args []js.Value) any {
     // just changing this directly is probably bad
     boid_sim.Rectangles = next_frame_args.rectangles;
 
-    input = Update_Input(
-        input,
+    // gotta love go not having named arguments,
+    user_input_this_frame = Update_Input(
+        user_input_this_frame,
         next_frame_args.mouse.left_down,
         next_frame_args.mouse.middle_down,
         next_frame_args.mouse.right_down,
@@ -136,16 +142,16 @@ func GetNextFrame(this js.Value, args []js.Value) any {
     last_frame_time = new_frame_time;
 
     // Clamp dt to something reasonable.
-    const REASONABLE_DT = 0.3;
-    dt = min(dt, REASONABLE_DT);
+    const REASONABLE_MAX_DT = 0.3;
+    dt = min(dt, REASONABLE_MAX_DT);
 
     // Calculate the next frame of boids
     // Times 60 because we want this to run at 60fps and dt=1 is supposed to be one time step
     // TODO ^ this comment is dumb, just make it work. '1 time step' is a dumb unit, just use m/s
-    boid_sim.Update_boids(dt, input);
+    boid_sim.Update_boids(dt, user_input_this_frame);
 
     // this might end up taking the most amount of time.
-    Draw_Everything(&img, &boid_sim, dt, input);
+    Draw_Everything(&img, &boid_sim, dt, user_input_this_frame);
 
     // copy the pixels, must be in RGBA format
     copied_bytes := js.CopyBytesToJS(next_frame_args.buffer, img.To_RGBA_byte_array());

@@ -103,12 +103,16 @@ type Boid_simulation struct {
     Walls []Line;
     Rectangles []Rectangle;
 
+    // since this is tick based, gotta keep track of the leftover time.
+    // when this number if over ONE_TICK_DT, 1 tick happens,
+    leftover_simulation_time float64;
+
     // used to calculate how long until the next boid is spawned / de-spawned
     //
     // should this be a float64 since its about time?
     spawn_timer Boid_Float;
 
-    props Properties;
+    properties Properties;
 }
 
 func New_boid_simulation(width, height Boid_Float) Boid_simulation {
@@ -145,16 +149,16 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
 
 func (boid_sim *Boid_simulation) bounds_as_rect() Rectangle {
     return Rectangle{
-        boid_sim.props.Margin,
-        boid_sim.props.Margin,
-        boid_sim.Width  - 2*boid_sim.props.Margin,
-        boid_sim.Height - 2*boid_sim.props.Margin,
+        boid_sim.properties.Margin,
+        boid_sim.properties.Margin,
+        boid_sim.Width  - 2*boid_sim.properties.Margin,
+        boid_sim.Height - 2*boid_sim.properties.Margin,
     };
 }
 
 
 // NOTE dt is in seconds
-func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
+func (boid_sim *Boid_simulation) Update_boids(dt float64, user_input Input_Status) {
     now := time.Now();
 
     // ------------------------------------------------------
@@ -162,8 +166,8 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     // ------------------------------------------------------
 
     // make a little splash effect on left click.
-    if input.Left_Clicked {
-        Append(&boid_sim.Click_Positions_And_Times, Position_And_Time{input.Mouse_Pos, now});
+    if user_input.Left_Clicked {
+        Append(&boid_sim.Click_Positions_And_Times, Position_And_Time{user_input.Mouse_Pos, now});
     }
     for i := 0; i < len(boid_sim.Click_Positions_And_Times); i++ {
         // remove if its been to long.
@@ -176,19 +180,19 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     }
 
     // make a new wall on right click and drag
-    if input.Middle_Clicked {
+    if user_input.Middle_Clicked {
         boid_sim.making_new_wall = true;
-        boid_sim.new_wall_start = input.Mouse_Pos;
+        boid_sim.new_wall_start = user_input.Mouse_Pos;
     }
     if boid_sim.making_new_wall {
-        if input.Middle_Released {
+        if user_input.Middle_Released {
             boid_sim.making_new_wall = false;
 
             // middle click must be held down for some time until it counts as a drag movement.
-            if input.Middle_Held_Prev {
+            if user_input.Middle_Held_Prev {
                 new_line := Line{
                     boid_sim.new_wall_start.x, boid_sim.new_wall_start.y,
-                    input.Mouse_Pos.x, input.Mouse_Pos.y,
+                    user_input.Mouse_Pos.x, user_input.Mouse_Pos.y,
                 };
 
                 Append(&boid_sim.Walls, new_line);
@@ -197,20 +201,36 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     }
 
 
+    boid_sim.leftover_simulation_time += dt;
+    for boid_sim.leftover_simulation_time > ONE_TICK_DT {
+        boid_sim.leftover_simulation_time -= ONE_TICK_DT;
+        boid_sim.do_one_tick(user_input);
+    }
+}
+
+const ONE_TICK_DT = 1.0 / 60;
+
+// do "one tick" of simulation, this will make physics more stable.
+//
+// TODO don't really want user input in here... would feel cleaner if this
+// function stood on its own. only thing it needs from user input is left
+// down drawing boids towards the cursor.
+func (boid_sim *Boid_simulation) do_one_tick(user_input Input_Status) {
+
     { // spawn / despawn boids.
         // TODO this could maybe do a ramp up / down?
-        boid_sim.spawn_timer += Boid_Float(dt);
+        boid_sim.spawn_timer += ONE_TICK_DT;
 
-        if boid_sim.props.Boid_Spawn_Rate == 0 { panic("oh no! something bad happened!"); }
-        time_to_spawn := 1 / boid_sim.props.Boid_Spawn_Rate;
+        if boid_sim.properties.Boid_Spawn_Rate == 0 { panic("oh no! something bad happened!"); }
+        time_to_spawn := 1 / boid_sim.properties.Boid_Spawn_Rate;
 
         for boid_sim.spawn_timer >= time_to_spawn {
             boid_sim.spawn_timer -= time_to_spawn;
 
             // check if we even need to add a new boid.
-            if len(boid_sim.Boids) == boid_sim.props.Max_Boids { continue; }
+            if len(boid_sim.Boids) == boid_sim.properties.Max_Boids { continue; }
 
-            if len(boid_sim.Boids) < boid_sim.props.Max_Boids {
+            if len(boid_sim.Boids) < boid_sim.properties.Max_Boids {
                 // add 1 boid.
 
                 var pos Vec2[Boid_Float];
@@ -220,7 +240,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
                         Boid_Float(rand_f32()*float32(boid_sim.Height)),
                     );
                     // TODO make some general "collide against everything" function.
-                    is_blocked_from_spawning := boid_sim.props.Toggle_Bounding && !point_rect_collision_vr(pos, boid_sim.bounds_as_rect());
+                    is_blocked_from_spawning := boid_sim.properties.Toggle_Bounding && !point_rect_collision_vr(pos, boid_sim.bounds_as_rect());
                     if !is_blocked_from_spawning {
                         for _, rect := range boid_sim.Rectangles {
                             if point_rect_collision_vr(pos, rect) {
@@ -303,7 +323,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
         coh := Vec2[Boid_Float]{};
 
         num_close_boids := 0;
-        for other_boid_index, near_pos := range boid_sim.Spacial_array.Iter_Over_Near(this_boid.Position, boid_sim.props.Visual_Range) {
+        for other_boid_index, near_pos := range boid_sim.Spacial_array.Iter_Over_Near(this_boid.Position, boid_sim.properties.Visual_Range) {
             // don't count it if it sees itself.
             if int(other_boid_index) == i { continue; }
 
@@ -311,7 +331,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
 
             // if the near guy is super close. move away
             dist_sqr := DistSqr(this_boid.Position, near_pos);
-            sep_min_dist_sqr := Square(boid_sim.props.Separation_Min_Distance);
+            sep_min_dist_sqr := Square(boid_sim.properties.Separation_Min_Distance);
             if dist_sqr < sep_min_dist_sqr {
 
                 // in percent, how close it is, 0 is same position
@@ -348,9 +368,9 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
             coh.Sub(this_boid.Position);
         }
 
-        sep.Mult(boid_sim.props.Separation_Factor);
-        align.Mult(boid_sim.props.Alignment_Factor);
-        coh.Mult(boid_sim.props.Cohesion_Factor);
+        sep.Mult(boid_sim.properties.Separation_Factor);
+        align.Mult(boid_sim.properties.Alignment_Factor);
+        coh.Mult(boid_sim.properties.Cohesion_Factor);
 
         boid_sim.Boids[i].Acceleration.Add(sep, align, coh);
     }
@@ -358,7 +378,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     // ------------------------------------
     //          Bounding forces
     // ------------------------------------
-    if boid_sim.props.Toggle_Bounding {
+    if boid_sim.properties.Toggle_Bounding {
         rect := boid_sim.bounds_as_rect();
 
         for i := range len(boid_sim.Boids) {
@@ -371,7 +391,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
             if boid_pos.y < rect.y          { vel.y += 1; }
             if boid_pos.y > rect.y + rect.h { vel.y -= 1; }
 
-            bounding := Mult(vel, boid_sim.props.Margin_Turn_Factor);
+            bounding := Mult(vel, boid_sim.properties.Margin_Turn_Factor);
             boid_sim.Boids[i].Acceleration.Add(bounding);
         }
     }
@@ -384,7 +404,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
 
         // how far to advance the random generator,
         // ..._Time_Dilation == seconds to switch generator.
-        time_advance := dt / float64(boid_sim.props.Random_Draw_Time_Dilation);
+        time_advance := ONE_TICK_DT / float64(boid_sim.properties.Random_Draw_Time_Dilation);
 
         force_vectors := [NUM_RANDOM_GENERATORS]Vec2[Boid_Float]{};
         for i := range NUM_RANDOM_GENERATORS {
@@ -392,7 +412,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
             theta := random_number * 2 * math.Pi;
 
             rotated_vector := Unit_Vector_With_Rotation(Boid_Float(theta));
-            rotated_vector.Mult(boid_sim.props.Random_Draw_Factor);
+            rotated_vector.Mult(boid_sim.properties.Random_Draw_Factor);
 
             force_vectors[i] = rotated_vector;
         }
@@ -409,7 +429,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     // ------------------------------------
     //         Center draw forces
     // ------------------------------------
-    if boid_sim.props.Center_Draw_Factor != 0 && boid_sim.props.Center_Draw_Radius_Div != 0 {
+    if boid_sim.properties.Center_Draw_Factor != 0 && boid_sim.properties.Center_Draw_Radius_Div != 0 {
         for i := range len(boid_sim.Boids) {
             this_boid := boid_sim.Boids[i];
 
@@ -417,14 +437,14 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
             center := Make_Vec2(boid_sim.Width/2, boid_sim.Height/2);
 
             // if they in in this circle, don't be drawn into the center.
-            min_radius := min(boid_sim.Width, boid_sim.Height) / boid_sim.props.Center_Draw_Radius_Div;
+            min_radius := min(boid_sim.Width, boid_sim.Height) / boid_sim.properties.Center_Draw_Radius_Div;
 
             if DistSqr(this_boid.Position, center) < Square(min_radius) { continue; }
 
             // vector pointing towards the center.
             center_pointer := Normalized(Sub(center, this_boid.Position));
 
-            center_draw := Mult(center_pointer, boid_sim.props.Center_Draw_Factor);
+            center_draw := Mult(center_pointer, boid_sim.properties.Center_Draw_Factor);
             boid_sim.Boids[i].Acceleration.Add(center_draw);
         }
     }
@@ -433,7 +453,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     //                 Wind
     // ------------------------------------
     for i := range len(boid_sim.Boids) {
-        wind := Make_Vec2(boid_sim.props.Wind_X_Factor, boid_sim.props.Wind_Y_Factor);
+        wind := Make_Vec2(boid_sim.properties.Wind_X_Factor, boid_sim.properties.Wind_Y_Factor);
         boid_sim.Boids[i].Acceleration.Add(wind);
     }
 
@@ -442,10 +462,10 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     //            Mouse stuff
     // ------------------------------------
     // on mouse down, move all boids towards mouse.
-    if input.Left_Down {
+    if user_input.Left_Down {
         for i := range len(boid_sim.Boids) {
-            toward_mouse := Sub(input.Mouse_Pos, boid_sim.Boids[i].Position);
-            force := Mult(Normalized(toward_mouse), boid_sim.props.Mouse_Draw_Factor);
+            toward_mouse := Sub(user_input.Mouse_Pos, boid_sim.Boids[i].Position);
+            force := Mult(Normalized(toward_mouse), boid_sim.properties.Mouse_Draw_Factor);
             boid_sim.Boids[i].Acceleration.Add(force);
         }
     }
@@ -464,7 +484,7 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     // Also this Sloppy_Equal is to stop this from running if the factor is zero,
     // might apply this to other things as well, but this feels like it
     // could maybe make a difference here
-    if !Sloppy_Equal(boid_sim.props.Boid_Vision_Factor, 0) || boid_sim.props.Num_Boid_Rays == 0 {
+    if !Sloppy_Equal(boid_sim.properties.Boid_Vision_Factor, 0) || boid_sim.properties.Num_Boid_Rays == 0 {
 
         for i := range len(boid_sim.Boids) {
             boid := boid_sim.Boids[i];
@@ -478,15 +498,15 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
                 // should be zero when it sees nothing, otherwise provides a push in the other direction.
                 new_force := Sub(ray_result.hit_point, end);
                 // square the vector. yes this is squaring
-                new_force.Mult(boid_sim.props.Visual_Range - Sqrt(ray_result.dist_sqr));
+                new_force.Mult(boid_sim.properties.Visual_Range - Sqrt(ray_result.dist_sqr));
 
                 combined_ray.Add(new_force);
             }
 
             // reduce the total forces by the number of rays.
-            combined_ray.Mult(1 / Boid_Float(boid_sim.props.Num_Boid_Rays));
+            combined_ray.Mult(1 / Boid_Float(boid_sim.properties.Num_Boid_Rays));
 
-            combined_ray.Mult(boid_sim.props.Boid_Vision_Factor);
+            combined_ray.Mult(boid_sim.properties.Boid_Vision_Factor);
 
             boid_sim.Boids[i].Acceleration.Add(combined_ray);
         }
@@ -508,10 +528,10 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
         v0 := boid_sim.Boids[i].Velocity;
         a := boid_sim.Boids[i].Acceleration;
 
-        a.Mult(boid_sim.props.Final_Acceleration_Boost);
+        a.Mult(boid_sim.properties.Final_Acceleration_Boost);
         // just the negative velocity for drag, must be after the final acceleration boost.
         // this stops things from getting to out of hand.
-        drag := Mult(v0, -boid_sim.props.Final_Drag_Coefficient);
+        drag := Mult(v0, -boid_sim.properties.Final_Drag_Coefficient);
         a.Add(drag);
 
         boid_sim.Boids[i].Acceleration = a;
@@ -520,16 +540,20 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     // ------------------------------------
     //   Update positions and velocities
     // ------------------------------------
-    boid_sim.finally_move_and_collide(dt);
+    //
+    // TODO bring this function back in? long functions are fine. as long as i know the bounds of them.
+    boid_sim.finally_move_and_collide();
 }
 
-func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
+
+
+func (boid_sim *Boid_simulation) finally_move_and_collide() {
     // make a bounding box.
     bounds_x1, bounds_y1, bounds_x2, bounds_y2 := boid_sim.bounds_as_rect().Splat_Vec();
 
-    boid_radius := boid_sim.props.Boid_Radius;
+    boid_radius := boid_sim.properties.Boid_Radius;
 
-    dt := Boid_Float(dt_);
+    // dt := Boid_Float(dt_);
 
     // TODO clean this mess up. god damn, its messy
 
@@ -543,7 +567,7 @@ func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
         a := boid.Acceleration;
 
         // v1 = a*t + v0
-        v1 := Add(Mult(a, dt), v0);
+        v1 := Add(Mult(a, ONE_TICK_DT), v0);
 
         { // this Code is kinda Meh.
             // this is kinda replacing Min_Speed, but i kinda don't want to think about it anymore.
@@ -575,8 +599,8 @@ func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
         //          Collisions
         // -------------------------------
 
-        vx := v_avg_x * dt;
-        vy := v_avg_y * dt;
+        vx := v_avg_x * ONE_TICK_DT;
+        vy := v_avg_y * ONE_TICK_DT;
 
         start_boid_pos := p0;
         boid_x, boid_y := start_boid_pos.Splat();
@@ -595,7 +619,7 @@ func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
         // --------------------------------------
         //     Margin bounding box collision
         // --------------------------------------
-        if boid_sim.props.Toggle_Bounding {
+        if boid_sim.properties.Toggle_Bounding {
             if !hit_something {
                 // collide with outer wall
                 hit_in_x, maybe_new_x := bounce_point_between_two_walls(boid_x, boid_radius, vx, bounds_x1, bounds_x2);
@@ -713,8 +737,8 @@ func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
                             // (vx / time) * 2 = v0.X + v1.X
                             // (vx / time) * 2 - v0.X = v1.X
                             // v1.X = (vx / time) * 2 - v0.X
-                            new_vx = vx_after / dt * 2 - v0.x;
-                            new_vy = vy_after / dt * 2 - v0.y;
+                            new_vx = vx_after / ONE_TICK_DT * 2 - v0.x;
+                            new_vy = vy_after / ONE_TICK_DT * 2 - v0.y;
                         }
 
                     }
@@ -731,7 +755,7 @@ func (boid_sim *Boid_simulation) finally_move_and_collide(dt_ float64) {
         boid.Velocity.y = new_vy;
 
         // makes them wrap around the screen
-        if boid_sim.props.Toggle_Wrapping {
+        if boid_sim.properties.Toggle_Wrapping {
             boid_sim.Boids[i].Position.x = Proper_Mod(boid_sim.Boids[i].Position.x, boid_sim.Width);
             boid_sim.Boids[i].Position.y = Proper_Mod(boid_sim.Boids[i].Position.y, boid_sim.Height);
         }
@@ -831,8 +855,8 @@ const MAX_RAYS = 32;
 var static_rays_storage [MAX_RAYS]Line;
 
 func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line {
-    num_rays    := boid_sim.props.Num_Boid_Rays;
-    cone_radius := boid_sim.props.Visual_Cone_Radius;
+    num_rays    := boid_sim.properties.Num_Boid_Rays;
+    cone_radius := boid_sim.properties.Visual_Cone_Radius;
 
     if num_rays > MAX_RAYS { panic("Why are there this many rays"); }
     result := static_rays_storage[:num_rays];
@@ -846,7 +870,7 @@ func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line {
         }
         dir := Rotate(boid.Velocity, angle);
 
-        dir.SetMag(boid_sim.props.Visual_Range); // Visual_Range is the farthest it can see.
+        dir.SetMag(boid_sim.properties.Visual_Range); // Visual_Range is the farthest it can see.
 
         pos := boid.Position;
         ray := Line{pos.x, pos.y, pos.x + dir.x, pos.y + dir.y};
@@ -956,7 +980,7 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
         }
     }
 
-    if boid_sim.props.Toggle_Bounding {
+    if boid_sim.properties.Toggle_Bounding {
         // this rectangle could have negative widths and heights...
         bounding_box := boid_sim.bounds_as_rect();
 

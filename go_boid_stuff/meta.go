@@ -71,7 +71,7 @@ func Get_property_structs() map[string]Property_Struct {
 func set_boid_defaults(boid_sim *Boid_simulation) {
     property_structs := Get_property_structs();
 
-    properties_reflected := reflect.ValueOf(&boid_sim.props).Elem();
+    properties_reflected := reflect.ValueOf(&boid_sim.properties).Elem();
 
     for name, prop_struct := range property_structs {
 
@@ -107,7 +107,7 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 
     if bad_name { log.Fatalf("ERROR: There was a bad name.\n"); }
 
-    properties_reflected := reflect.ValueOf(&boid_sim.props).Elem();
+    properties_reflected := reflect.ValueOf(&boid_sim.properties).Elem();
 
     for name, union := range the_map {
 
