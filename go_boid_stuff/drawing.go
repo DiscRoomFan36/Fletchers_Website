@@ -26,10 +26,10 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
         draw_spacial_array_into_image(img, boid_sim.Spacial_array, SCALE_FACTOR);
     }
 
-    if DEBUG_BOUNDARY && boid_sim.props.Toggle_Bounding {
+    if DEBUG_BOUNDARY && boid_sim.properties.Toggle_Bounding {
         boid_boundary_color := rgb(240, 240, 240);
 
-        margin := int(boid_sim.props.Margin * SCALE_FACTOR);
+        margin := int(boid_sim.properties.Margin * SCALE_FACTOR);
         boundary_points := [4]Vec2[int]{
             {x: margin,             y: margin},
             {x: img.Width - margin, y: margin},
@@ -48,7 +48,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
         for _, b := range boid_sim.Boids {
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
-            r := boid_sim.props.Visual_Range * SCALE_FACTOR;
+            r := boid_sim.properties.Visual_Range * SCALE_FACTOR;
             Draw_Circle(img, x, y, r, visual_radius_color);
         }
 
@@ -57,7 +57,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
         for _, b := range boid_sim.Boids {
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
-            r := boid_sim.props.Separation_Min_Distance * SCALE_FACTOR;
+            r := boid_sim.properties.Separation_Min_Distance * SCALE_FACTOR;
             Draw_Circle(img, x, y, r, minimum_radius_color);
         }
     }
@@ -98,7 +98,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
         p2 := Mult(input.Mouse_Pos, SCALE_FACTOR);
 
         const NUM_ROTATIONS_PER_SECOND = 0.25;
-        t := Proper_Mod(Get_Time(), 10000);
+        t := Get_Time_Repeating();
         added := 2 * math.Pi * Boid_Float(t) * NUM_ROTATIONS_PER_SECOND;
 
         Draw_Triangles_Circling(img, p1, 8, 20, added, rgba(30, 236, 202, 1));
@@ -129,7 +129,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
             // someone who knows math explain this
             boid_shape[i] = Rotate(boid_shape[i], theta);
 
-            boid_shape[i].Mult(boid_sim.props.Boid_Radius * SCALE_FACTOR);
+            boid_shape[i].Mult(boid_sim.properties.Boid_Radius * SCALE_FACTOR);
             boid_shape[i].Add(b.Position);
         }
 
