@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-
 //
 // Properties of the simulation.
 //
@@ -67,6 +66,15 @@ type Properties struct {
 
 
     Boid_Radius Boid_Float `Property:"float" Range:"0;10" Default:"2.5"`;
+
+
+    // TODO i would like the category to be "Debug Draw" (without the '_'),
+    // but i parse the tags in a dumb way, maybe later.
+    Debug_Draw_Spacial_Array bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Boundary      bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Heading       bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Visual_Ranges bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Debug_Draw_Rectangles    bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
 }
 
 
@@ -74,18 +82,18 @@ type Properties struct {
 
 // reflection stuff to get and set fields.
 
-type Property_Type int;
+type Property_Data_Type int;
 const (
-    None    Property_Type = iota;
-    Property_Float;
-    Property_Int;
-    Property_Bool;
+    None     Property_Data_Type = iota;
+    Property_Data_Float;
+    Property_Data_Int;
+    Property_Data_Bool;
 )
 
 type Property_Struct struct {
     Tag_as_string string;
 
-    Property_type Property_Type;
+    Property_data_type Property_Data_Type;
 
     // Float properties
     Float_range_min float64;
@@ -99,6 +107,10 @@ type Property_Struct struct {
 
     // Bool properties
     Bool_default bool;
+
+
+    // category for nice display in javascript.
+    category string;
 }
 
 
@@ -111,6 +123,7 @@ const (
 
     Flag_range     = 1 << 1;
     Flag_default   = 1 << 2;
+    Flag_category  = 1 << 3;
 )
 
 
@@ -140,12 +153,12 @@ func set_boid_defaults(boid_sim *Boid_simulation) {
 
         settable_field := properties_reflected.FieldByName(name);
 
-        switch prop_struct.Property_type {
-        case Property_Float: settable_field.SetFloat(prop_struct.Float_default);
-        case Property_Int:   settable_field.SetInt(int64(prop_struct.Int_default));
-        case Property_Bool:  settable_field.SetBool(prop_struct.Bool_default);
+        switch prop_struct.Property_data_type {
+        case Property_Data_Float: settable_field.SetFloat(prop_struct.Float_default);
+        case Property_Data_Int:   settable_field.SetInt(int64(prop_struct.Int_default));
+        case Property_Data_Bool:  settable_field.SetBool(prop_struct.Bool_default);
 
-        default: log.Panicf("%v: Unknown property in 'set_boid_defaults' switch", name);
+        default: log.Panicf("%v: Unknown property data type in 'set_boid_defaults' switch", name);
         }
     }
 }
@@ -178,10 +191,10 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 
         settable_field := properties_reflected.FieldByName(name);
 
-        switch prop_struct.Property_type {
-        case Property_Float: settable_field.SetFloat(union.As_float);
-        case Property_Int:   settable_field.SetInt(int64(union.As_int));
-        case Property_Bool:  settable_field.SetBool(union.As_bool);
+        switch prop_struct.Property_data_type {
+        case Property_Data_Float: settable_field.SetFloat(union.As_float);
+        case Property_Data_Int:   settable_field.SetInt(int64(union.As_int));
+        case Property_Data_Bool:  settable_field.SetBool(union.As_bool);
 
         default: log.Panicf("%v: Unknown property in 'Set_Properties_with_map' switch", name);
         }
@@ -205,7 +218,11 @@ func create_property_structs() map[string]Property_Struct {
         tag  := field.Tag;
 
         _, has_property := tag.Lookup("Property");
-        if !has_property { continue; }
+        if !has_property {
+            // every field must be a property.
+            log.Panicf("create_property_structs: Every field in Properties should be a property. but %s did not have the properties tag. (it's tag is `%s`)", field.Name, field.Tag);
+            // continue;
+        }
 
         // --------------------------------------------
         //        Parse Tag into property struct
@@ -216,20 +233,23 @@ func create_property_structs() map[string]Property_Struct {
         property_struct.Tag_as_string = string(tag);
 
         // space separated tags.
+        //
+        // TODO sometimes i want spaces in my tags,
+        // this is not a proper way to split things
         tag_split := strings.Split(string(tag), " ");
 
         // property must always first.
-        property_property, prop_type := tag_property_to_parts(tag_split[0]);
+        property_property, property_data_type := tag_property_to_parts(tag_split[0]);
 
-        if property_property != "Property" { log.Panicf("field '%v' (witch has the property tag), dose not have the property tag first, was %v\n", name, tag); }
+        if property_property != "Property" { log.Panicf("create_property_structs: field '%v' (witch has the property tag), dose not have the property tag first, was %v\n", name, tag); }
 
-        switch prop_type {
+        switch property_data_type {
         // TODO use an enum here.
-        case "float": { property_struct.Property_type = Property_Float; }
-        case "int":   { property_struct.Property_type = Property_Int;   }
-        case "bool":  { property_struct.Property_type = Property_Bool;  }
+        case "float": { property_struct.Property_data_type = Property_Data_Float; }
+        case "int":   { property_struct.Property_data_type = Property_Data_Int;   }
+        case "bool":  { property_struct.Property_data_type = Property_Data_Bool;  }
 
-        default: { log.Panicf("%v: unknown property type '%v'\n", name, prop_type); }
+        default: { log.Panicf("create_property_structs: when parsing field '%s', unknown property data type '%v'\n", name, property_data_type); }
         }
 
         tag_split = tag_split[1:];
@@ -244,94 +264,106 @@ func create_property_structs() map[string]Property_Struct {
 
             switch left {
             case "Range": {
-                if struct_field_flags & Flag_range != 0 { log.Panicf("%v: Range property was set twice.", name); }
+                if struct_field_flags & Flag_range != 0 { log.Panicf("create_property_structs: when parsing field '%s', Range property was set twice.", name); }
                 struct_field_flags |= Flag_range;
 
-                switch property_struct.Property_type {
-                case Property_Float: {
+                switch property_struct.Property_data_type {
+                case Property_Data_Float: {
                     ok, min_s, max_s := split_once(right, ";");
-                    if !ok { log.Panicf("%v: right side of range property did not have a ';', was '%v'\n", name, right); }
+                    if !ok { log.Panicf("create_property_structs: when parsing field '%s', right side of range property did not have a ';', was '%v'\n", name, right); }
 
                     min_f, ok1 := strconv.ParseFloat(min_s, 64);
                     max_f, ok2 := strconv.ParseFloat(max_s, 64);
 
-                    if ok1 != nil || ok2 != nil { log.Panicf("%v: error parsing floats in range. was '%v'\n", name, right); }
+                    if ok1 != nil || ok2 != nil { log.Panicf("create_property_structs: when parsing field '%s', error parsing floats in range. was '%s'\n", name, right); }
 
                     property_struct.Float_range_min = min_f;
                     property_struct.Float_range_max = max_f;
                 }
 
-                case Property_Int: {
+                case Property_Data_Int: {
                     ok, min_s, max_s := split_once(right, ";");
-                    if !ok { log.Panicf("%v: right side of range property did not have a ';', was '%v'\n", name, right); }
+                    if !ok { log.Panicf("create_property_structs: when parsing field '%s', right side of range property did not have a ';', was '%s'\n", name, right); }
 
                     strconv.ParseInt(min_s, 0, 0);
                     min_i, ok1 := strconv.ParseInt(min_s, 10, 0);
                     max_i, ok2 := strconv.ParseInt(max_s, 10, 0);
 
-                    if ok1 != nil || ok2 != nil { log.Panicf("%v: error parsing ints in range. was '%v'\n", name, right); }
+                    if ok1 != nil || ok2 != nil { log.Panicf("create_property_structs: when parsing field '%s', error parsing ints in range. was '%s'\n", name, right); }
 
                     property_struct.Int_range_min = int(min_i);
                     property_struct.Int_range_max = int(max_i);
                 }
 
-                case Property_Bool: {
-                    log.Panicf("%v: Bool dose not use Range", name);
+                case Property_Data_Bool: {
+                    log.Panicf("create_property_structs: when parsing field '%s', Bool dose not use Range", name);
                 }
 
-                default: { log.Panicf("%v: Unknown property in range switch", name); }
+                default: { log.Panicf("create_property_structs: when parsing field '%s', Unknown property in range switch", name); }
                 }
 
             }
 
             case "Default": {
-                if struct_field_flags & Flag_default != 0 { log.Panicf("%v: Default property was set twice.\n", name); }
+                if struct_field_flags & Flag_default != 0 { log.Panicf("create_property_structs: when parsing field '%s', Default property was set twice.\n", name); }
                 struct_field_flags |= Flag_default;
 
-                switch property_struct.Property_type {
-                case Property_Float: {
+                switch property_struct.Property_data_type {
+                case Property_Data_Float: {
                     def, ok := strconv.ParseFloat(right, 64);
 
-                    if ok != nil { log.Panicf("%v: error in Default, could not parse float. was '%v'\n", name, right); }
+                    if ok != nil { log.Panicf("create_property_structs: when parsing field '%s', error in Default, could not parse float. was '%v'\n", name, right); }
 
                     property_struct.Float_default = def;
                 }
 
-                case Property_Int: {
+                case Property_Data_Int: {
                     def, ok := strconv.ParseInt(right, 10, 0);
 
-                    if ok != nil { log.Panicf("%v: error in Default, could not parse int. was '%v'\n", name, right); }
+                    if ok != nil { log.Panicf("create_property_structs: when parsing field '%s', error in Default, could not parse int. was '%v'\n", name, right); }
 
                     property_struct.Int_default = int(def);
                 }
 
-                case Property_Bool: {
+                case Property_Data_Bool: {
                     def, ok := strconv.ParseBool(right);
 
-                    if ok != nil { log.Panicf("%v: error in Default, could not parse bool. was '%v'\n", name, right); }
+                    if ok != nil { log.Panicf("create_property_structs: when parsing field '%s', error in Default, could not parse bool. was '%v'\n", name, right); }
 
                     property_struct.Bool_default = def;
                 }
 
-                default: { log.Panicf("%v: Unknown property in default switch", name); }
+                default: { log.Panicf("create_property_structs: when parsing field '%s', Unknown property in default switch", name); }
                 }
 
             }
 
-            default: { log.Panicf("%v: Unknown property %v\n", name, left); }
+            case "Category": {
+                if struct_field_flags & Flag_category != 0 { log.Panicf("create_property_structs: when parsing field '%s', Category property was set twice.\n", name); }
+                struct_field_flags |= Flag_category;
+
+                property_struct.category = right;
+            }
+
+            default: { log.Panicf("create_property_structs: when parsing field '%s', Unknown property type '%s'\n", name, left); }
             }
         }
 
         // check that all relevant property's fields where set with the flags
         if struct_field_flags & Flag_range == 0 {
             // bool's don't have a range.
-            if property_struct.Property_type != Property_Bool {
-                log.Panicf("%v: range field was not set.\n", name);
+            if property_struct.Property_data_type != Property_Data_Bool {
+                log.Panicf("create_property_structs: when parsing field '%s', range field was not set.\n", name);
             }
         }
         if struct_field_flags & Flag_default == 0 {
-            log.Panicf("%v: Default field was not set.\n", name);
+            log.Panicf("create_property_structs: when parsing field '%s', Default field was not set.\n", name);
         }
+        //
+        // Category can be unset. its fine.
+        // better than setting every single one to "None" or "Misc"
+        //
+        // if struct_field_flags & Flag_category == 0 {}
 
         property_structs[name] = property_struct;
     }

@@ -60,10 +60,10 @@ func SetProperties(this js.Value, args []js.Value) any {
         }
 
         union := Union_Like{};
-        switch prop_struct.Property_type {
-            case Property_Float: union.As_float = js_value.Float();
-            case Property_Int  : union.As_int   = js_value.Int();
-            case Property_Bool : union.As_bool  = js_value.Bool();
+        switch prop_struct.Property_data_type {
+            case Property_Data_Float: union.As_float = js_value.Float();
+            case Property_Data_Int  : union.As_int   = js_value.Int();
+            case Property_Data_Bool : union.As_bool  = js_value.Bool();
         }
         things_to_set_map[prop_name] = union;
     }
