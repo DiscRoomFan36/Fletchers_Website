@@ -11,8 +11,10 @@ const NUM_RANDOM_GENERATORS = 32;
 const CLICK_FADE_TIME = 1;
 
 
+// i wish golang had a 'float' type.
 type Boid_Float float32;
 
+// one single boid.
 type Boid struct {
     Position Vec2[Boid_Float];
     Velocity Vec2[Boid_Float];
@@ -24,71 +26,20 @@ type Position_And_Time struct {
     Time time.Time;
 }
 
-type Properties struct {
-    // in rough order of when their used
-
-    // regarding property tags.
-    //
-    // now, you might be thinking:
-    //
-    //     why do we need 'Property:"int"' when we have go's reflection?
-    //
-    // because javascript needs to know what property this variables have,
-    // and it makes things a whole lot easier if we just send the tag
-    // straight to javascript, so we may have to parse it twice, but we
-    // can do the parsing the same way both times.
-
-    Max_Boids          int `Property:"int" Range:"0;5000" Default:"1000"`;
-    // how many spawn / de-spawn per second.
-    Boid_Spawn_Rate    Boid_Float `Property:"float" Range:"10;1000" Default:"100"`;
-
-    Visual_Range            Boid_Float `Property:"float" Range:"1;25" Default:"15"`;
-    Separation_Min_Distance Boid_Float `Property:"float" Range:"0;20" Default:"8.5"`;
-
-    Separation_Factor Boid_Float `Property:"float" Range:"0;1" Default:"0.50"`; // 0.15
-    Alignment_Factor  Boid_Float `Property:"float" Range:"0;1" Default:"0.30"`; // 0.15
-    Cohesion_Factor   Boid_Float `Property:"float" Range:"0;1" Default:"0.15"`; // 0.015
-
-    Margin             Boid_Float `Property:"float" Range:"0;100" Default:"50"`;
-    Margin_Turn_Factor Boid_Float `Property:"float" Range:"0;20" Default:"4"`;
-
-    Random_Draw_Factor        Boid_Float `Property:"float" Range:"0;10" Default:"2"`;
-    Random_Draw_Time_Dilation Boid_Float `Property:"float" Range:"1;10" Default:"2"`;
-
-    Center_Draw_Radius_Div Boid_Float `Property:"float" Range:"0;10" Default:"3"`;
-    Center_Draw_Factor     Boid_Float `Property:"float" Range:"0;10" Default:"1"`;
-
-    Wind_X_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0"`;
-    Wind_Y_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0"`;
-
-    Mouse_Draw_Factor Boid_Float `Property:"float" Range:"1;20" Default:"2"`;
-
-    Num_Boid_Rays      int        `Property:"int" Range:"1;10" Default:"5"`;
-    // in radians
-    Visual_Cone_Radius Boid_Float `Property:"float" Range:"0;360" Default:"140"`;
-    Boid_Vision_Factor Boid_Float `Property:"float" Range:"0;5" Default:"1"`;
-
-    Final_Acceleration_Boost Boid_Float `Property:"float" Range:"1;25" Default:"10"`; // 5
-    Final_Drag_Coefficient   Boid_Float `Property:"float" Range:"0;2" Default:"0.15"`; // 1
-
-
-    Toggle_Wrapping bool `Property:"bool" Default:"true"`;
-    Toggle_Bounding bool `Property:"bool" Default:"false"`;
-
-
-    Boid_Radius Boid_Float `Property:"float" Range:"0;10" Default:"2.5"`;
-}
-
 type Boid_simulation struct {
     Boids []Boid;
 
+    // this is the bounds of the boid simulation. boids can go
+    // outside of this, (if wrapping is disabled). its just a guideline.
+    //
+    // (also used to set up the spacial array, as a default)
     Width, Height Boid_Float;
 
     // for fast proximity detection.
     Spacial_array Spacial_Array[Boid_Float];
 
     // used for random draw forces
-    generators [NUM_RANDOM_GENERATORS]Random_Generator;
+    random_generators [NUM_RANDOM_GENERATORS]Random_Generator;
 
 
     // for animations.
@@ -100,7 +51,10 @@ type Boid_simulation struct {
 
 
     // Thing a boid can hit, maybe they can see it as well?
+
+    // this is the thing the user can make
     Walls []Line;
+    // this is the text bounding boxes currently
     Rectangles []Rectangle;
 
     // since this is tick based, gotta keep track of the leftover time.
@@ -112,6 +66,8 @@ type Boid_simulation struct {
     // should this be a float64 since its about time?
     spawn_timer Boid_Float;
 
+    // all the settable properties, may contain stuff not
+    // directly related to the boid simulation
     properties Properties;
 }
 
@@ -138,10 +94,10 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
     set_boid_defaults(&boid_sim);
 
     for i := range NUM_RANDOM_GENERATORS {
-        boid_sim.generators[i] = New_Random_Generator(true);
+        boid_sim.random_generators[i] = New_Random_Generator(true);
         // offset the generators a bit.
         // this doesn't have to be random. could just be 'i / NUM_RANDOM_GENERATORS'
-        boid_sim.generators[i].t = rand_f32();
+        boid_sim.random_generators[i].t = rand_f32();
     }
 
     return boid_sim;
@@ -408,7 +364,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
 
         force_vectors := [NUM_RANDOM_GENERATORS]Vec2[Boid_Float]{};
         for i := range NUM_RANDOM_GENERATORS {
-            random_number := boid_sim.generators[i].Next(float32(time_advance));
+            random_number := boid_sim.random_generators[i].Next(float32(time_advance));
             theta := random_number * 2 * math.Pi;
 
             rotated_vector := Unit_Vector_With_Rotation(Boid_Float(theta));
