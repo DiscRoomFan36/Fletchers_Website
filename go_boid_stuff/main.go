@@ -11,7 +11,7 @@ import (
 var img Image;
 
 var boid_sim Boid_simulation;
-var user_input_this_frame Input_Status;
+var user_input_this_frame User_Input;
 
 var last_frame_time time.Time;
 

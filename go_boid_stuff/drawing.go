@@ -19,7 +19,7 @@ const SCALE_FACTOR = 1 / BOID_SCALE;
 // TODO have some sort of view mode here, so we can 'move' the 'camera'
 //
 // go incorrectly reports this function as unused if it is not public...
-func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Input_Status) {
+func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input User_Input) {
     Draw_Cool_Background(img, boid_sim, dt, input);
 
     if DEBUG_SPACIAL_ARRAY {
@@ -95,7 +95,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
 
     if boid_sim.making_new_wall {
         p1 := Mult(boid_sim.new_wall_start, SCALE_FACTOR);
-        p2 := Mult(input.Mouse_Pos, SCALE_FACTOR);
+        p2 := Mult(input.Mouse_Position, SCALE_FACTOR);
 
         const NUM_ROTATIONS_PER_SECOND = 0.25;
         t := Get_Time_Repeating();
@@ -105,7 +105,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input In
         Draw_Triangles_Circling(img, p2, 8, 20, added, rgba(30, 236, 202, 1));
 
         color := rgb(236, 236, 10);
-        if input.Middle_Held { color = rgb(10, 245, 10); }
+        if input.Middle.Held { color = rgb(10, 245, 10); }
         Draw_Line(img, p1, p2, color);
     }
 
@@ -434,7 +434,7 @@ func get_y_offset(t float64) int {
 }
 
 
-func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, input Input_Status) {
+func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, input User_Input) {
     // this call is super slow.
     //
     // who knew that writing to over a million pixels would be so slow?
