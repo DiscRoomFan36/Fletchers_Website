@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-const DEBUG_SPACIAL_ARRAY = false;
-const DEBUG_BOUNDARY      = true;
-const DEBUG_HEADING       = false;
-const DEBUG_VISUAL_RANGES = false;
-const DEBUG_RECTANGLES    = false;
-
-
 // multiply by this to map boid space into image space.
 const SCALE_FACTOR = 1 / BOID_SCALE;
 
@@ -22,11 +15,11 @@ const SCALE_FACTOR = 1 / BOID_SCALE;
 func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input User_Input) {
     Draw_Cool_Background(img, boid_sim, dt, input);
 
-    if DEBUG_SPACIAL_ARRAY {
+    if boid_sim.properties.Debug_Draw_Spacial_Array {
         draw_spacial_array_into_image(img, boid_sim.Spacial_array, SCALE_FACTOR);
     }
 
-    if DEBUG_BOUNDARY && boid_sim.properties.Toggle_Bounding {
+    if boid_sim.properties.Debug_Draw_Boundary && boid_sim.properties.Toggle_Bounding {
         boid_boundary_color := rgb(240, 240, 240);
 
         margin := int(boid_sim.properties.Margin * SCALE_FACTOR);
@@ -42,7 +35,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         }
     }
 
-    if DEBUG_VISUAL_RANGES {
+    if boid_sim.properties.Debug_Draw_Visual_Ranges {
         // Draw visual radius.
         visual_radius_color := HSL_to_RGB(50, 0.7, 0.9);
         for _, b := range boid_sim.Boids {
@@ -62,7 +55,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         }
     }
 
-    if DEBUG_RECTANGLES {
+    if boid_sim.properties.Debug_Draw_Rectangles {
         for _, wall := range boid_sim.Rectangles {
             x, y, w, h := wall.Splat();
             boundary_points := [4]Vec2[Boid_Float]{
@@ -148,7 +141,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[2], boid_color);
         Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[3], boid_color);
 
-        if DEBUG_HEADING {
+        if boid_sim.properties.Debug_Draw_Heading {
             // Draw heading line
             where_boid_will_be := Add(b.Position, b.Velocity);
             Draw_Line(img, b.Position, where_boid_will_be, rgba(43, 231, 26, 1));
@@ -181,40 +174,24 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         );
     }
 
+    if boid_sim.properties.Debug_Draw_Mouse_Position {
+    	center   := Mult(input.Mouse_Position, SCALE_FACTOR);
 
-    // { // debug mouse pos
-    // 	center   := Mult(input.Mouse_Pos, SCALE_FACTOR)
-    // 	// adjusted := center
-    // 	// adjusted.x *= 1.01
+    	const LEN = 10
 
-    // 	const LEN = 10
-
-    // 	Draw_Line(
-    // 		img,
-    // 		Add(center, Vec2[Boid_Float]{0, -LEN}),
-    // 		Add(center, Vec2[Boid_Float]{0,  LEN}),
-    // 		rgba(76, 114, 240, 1),
-    // 	)
-    // 	Draw_Line(
-    // 		img,
-    // 		Add(center, Vec2[Boid_Float]{-LEN, 0}),
-    // 		Add(center, Vec2[Boid_Float]{ LEN, 0}),
-    // 		rgba(76, 114, 240, 1),
-    // 	)
-
-    // 	// Draw_Line(
-    // 	// 	img,
-    // 	// 	Add(adjusted, Vec2[Boid_Float]{0, -LEN}),
-    // 	// 	Add(adjusted, Vec2[Boid_Float]{0,  LEN}),
-    // 	// 	rgba(235, 126, 83, 1),
-    // 	// )
-    // 	// Draw_Line(
-    // 	// 	img,
-    // 	// 	Add(adjusted, Vec2[Boid_Float]{-LEN, 0}),
-    // 	// 	Add(adjusted, Vec2[Boid_Float]{ LEN, 0}),
-    // 	// 	rgba(235, 126, 83, 1),
-    // 	// )
-    // }
+    	Draw_Line(
+    		img,
+    		Add(center, Vec2[Boid_Float]{0, -LEN}),
+    		Add(center, Vec2[Boid_Float]{0,  LEN}),
+    		rgba(76, 114, 240, 1),
+    	)
+    	Draw_Line(
+    		img,
+    		Add(center, Vec2[Boid_Float]{-LEN, 0}),
+    		Add(center, Vec2[Boid_Float]{ LEN, 0}),
+    		rgba(76, 114, 240, 1),
+    	)
+    }
 
     // {
     // 	center := Mult(input.Mouse_Pos, scale_factor)
