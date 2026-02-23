@@ -31,6 +31,8 @@ func convert_0_1_to_0_255[T Float](x T) uint8 {
     return uint8(a);
 }
 
+// wish this could have a type parameter, but methods cant have
+// them, and i don't want to make this function twice.
 func (c *Color) Set_Alpha(a float32) {
     // this could be slightly faster...
     // just skip the destructuring.
