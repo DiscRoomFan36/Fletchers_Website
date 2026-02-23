@@ -200,6 +200,8 @@ func (boid_sim *Boid_simulation) Update_boids(dt float64, input Input_Status) {
     { // spawn / despawn boids.
         // TODO this could maybe do a ramp up / down?
         boid_sim.spawn_timer += Boid_Float(dt);
+
+        if boid_sim.props.Boid_Spawn_Rate == 0 { panic("oh no! something bad happened!"); }
         time_to_spawn := 1 / boid_sim.props.Boid_Spawn_Rate;
 
         for boid_sim.spawn_timer >= time_to_spawn {

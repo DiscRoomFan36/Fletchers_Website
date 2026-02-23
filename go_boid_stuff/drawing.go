@@ -1,8 +1,8 @@
-package main;
+package main
 
 import (
-    "math";
-    "time";
+	"math"
+	"time"
 )
 
 const DEBUG_SPACIAL_ARRAY = false;

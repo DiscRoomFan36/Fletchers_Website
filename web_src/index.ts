@@ -254,6 +254,7 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     { // Handle slider stuff
         const boid_properties = Object.entries(go.get_properties());
+        if (boid_properties.length == 0) throw new Error("No properties where given to javascript!");
 
         function set_property(name: string, value: number|boolean) {
             // https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript
