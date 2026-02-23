@@ -26,7 +26,8 @@ func parse_js_value_to_type_helper(js_value js.Value, reflected_type reflect.Val
     if !reflected_type.CanSet() { panic("cannot set reflected type for some reason?"); }
 
 
-    { // quickly check the type of js.value
+    // quickly check the type of js.value, but only if the type is not a js.Value
+    if reflected_type.Type() != reflect.TypeFor[js.Value]() {
         current_type_kind := reflected_type.Kind();
         current_js_type   := js_value.Type();
 
