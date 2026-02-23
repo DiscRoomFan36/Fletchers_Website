@@ -58,10 +58,12 @@ var hidden_property_structs map[string]Property_Struct = nil;
 
 // Will panic if there is something funny in the formatting, Call to get the property map.
 func Get_property_structs() map[string]Property_Struct {
-    // use property Structs as a flag, to know when inited.
+    // use property Structs as a flag, to know when init-ed.
     if hidden_property_structs == nil {
         hidden_property_structs = create_property_structs();
     }
+
+    if len(hidden_property_structs) == 0 { panic("Get_property_structs: hidden_property_structs was empty?"); }
     return hidden_property_structs;
 }
 
@@ -129,12 +131,12 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 //
 // you can use the returned property structs with no fear, (but you should call 'Get_property_structs()' because it cashes the return value of this function)
 func create_property_structs() map[string]Property_Struct {
-    property_structs := make(map[string]Property_Struct, 0);
+    property_structs := make(map[string]Property_Struct);
 
-    property_struct_type := reflect.TypeFor[Property_Struct]();
+    properties_type := reflect.TypeFor[Properties]();
 
-    for i := range property_struct_type.NumField() {
-        field := property_struct_type.Field(i);
+    for i := range properties_type.NumField() {
+        field := properties_type.Field(i);
 
         name := field.Name;
         tag  := field.Tag;

@@ -1,11 +1,11 @@
 //go:build wasm
 
-package main;
+package main
 
 import (
-    "log";
-    "syscall/js";
-    "time";
+	"log"
+	"syscall/js"
+	"time"
 )
 
 var img Image;
@@ -29,6 +29,7 @@ func GetProperties(this js.Value, args []js.Value) any {
     }
 
     property_structs := Get_property_structs();
+    if len(property_structs) == 0 { panic("GetProperties: Get_property_structs did not return any structs?") }
 
     // We have to do this because js.FuncOf() expects this function to return a map to any. (aka a javascript object.)
     properties_to_any := make(map[string]any);
