@@ -54,23 +54,28 @@ DONE
 * figure out the real reason the input numbers are off by 2% ('position: absolute;' had something to do with it, got fixed when set to 'fixed')
 * get ray results just accepts a boid, can cut down on the number of min's and max's that way.
 * maybe make the boids smaller so i can fit more of them.
+* should the debug numbers stick around? Yes, makes me look more computery
+* fix boid waterfall? and maybe them showing up over my email at the bottom.
+* make proper profiling tools... nah, just trust that the crome profiler.
+* speed up the simulation, would like at least 3000 boids at once, the slow part is the rendering. it's fast enough now, if i really wanted more boids, i would convert the rendering to js calls, but maybe later.
 
 
 
 NEXT
 
+* make boids explode when de-spawned
+* maybe instead of all that collision code, i can just explode the boids
 
-* speed up the spacial array, its the slowest part right now. maybe just add more boxes?
+* every boid should have a "go here" marker, that they are drawn towards, if they reach it, get another marker. make the boids flow around the screen, clockwise or counterclockwise
 
-* should the debug numbers stick around?
+* see if zip compressing the .wasm makes it smaller. i dream of hitting that 14Kb mark.
+
+
+
+* speed up the spacial array, its the slowest part right now. maybe just add more boxes? probably need to make them squares again, and take into account the boid vision radius.
 
 * add mouse delta to input, test if it works.
 
-* fix boid waterfall? and maybe them showing up over my email at the bottom.
-
-* make proper profiling tools...
-
-* speed up the simulation, would like at least 3000 boids at once, the slow part is the rendering.
 * make the rendering a camera like, so you can scroll and what not.
 * draw an actual image instead of the triangles? <- would require major typescript rendering, i don't think wasm has got that speed.
 * have the go_boid_stuff/image use actual canvas stuff, for speed. would require a lot of refactoring on the typescript side.
