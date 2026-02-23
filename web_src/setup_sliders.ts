@@ -1,15 +1,15 @@
 
 import { Log_Type, log } from "./logger";
 
-enum Property_Type {
+enum Property_Data_Type {
     None,
-    Property_Float,
-    Property_Int,
-    Property_Bool,
+    Property_Data_Float,
+    Property_Data_Int,
+    Property_Data_Bool,
 };
 
 class Property_Struct {
-    property_type:   Property_Type = Property_Type.None;
+    property_data_type:   Property_Data_Type = Property_Data_Type.None;
 
     // Float properties
     float_range_min: number = 0;
@@ -21,33 +21,12 @@ class Property_Struct {
     int_range_max:   number = 0;
     int_default:     number = 0;
 
+    // Bool properties
     bool_default:    boolean = false;
-};
 
-function tag_prop_to_parts(prop: string): [string, string] {
-    const [left, right_with_junk] = prop.split(":");
-    const right = right_with_junk.slice(1, right_with_junk.length-1);
-    return [left, right];
-};
 
-function parse_bool(s: string): boolean {
-    // 1, t, T, TRUE, true, True,
-    // 0, f, F, FALSE, false, False
-    switch (s) {
-    case "1":
-    case "t": case "T":
-    case "TRUE": case "true": case "True": {
-        return true;
-    }
-
-    case "0":
-    case "f": case "F":
-    case "FALSE": case "false": case "False": {
-        return false;
-    }
-
-    default: throw new Error(`Unknown string in parseBool, was ${s}`);
-    }
+    // for nice property visualization.
+    category:        string = "None";
 };
 
 
@@ -70,17 +49,17 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 
         const tag_split = (tag as string).split(" ");
 
-        const [prop_property, prop_type] = tag_prop_to_parts(tag_split[0]);
+        const [prop_property, property_data_type] = tag_prop_to_parts(tag_split[0]);
         if (prop_property != "Property")    throw new Error(`First property is not property, tag was ${tag}`);
 
         const property_struct = new Property_Struct();
 
-        switch (prop_type) {
-        case "float": { property_struct.property_type = Property_Type.Property_Float; } break;
-        case "int":   { property_struct.property_type = Property_Type.Property_Int;   } break;
-        case "bool":  { property_struct.property_type = Property_Type.Property_Bool;  } break;
+        switch (property_data_type) {
+        case "float": { property_struct.property_data_type = Property_Data_Type.Property_Data_Float; } break;
+        case "int":   { property_struct.property_data_type = Property_Data_Type.Property_Data_Int;   } break;
+        case "bool":  { property_struct.property_data_type = Property_Data_Type.Property_Data_Bool;  } break;
 
-        default: throw new Error(`Unknown prop type ${prop_type}`);
+        default: { throw new Error(`Unknown property data type ${property_data_type}`); }
         }
 
         tag_split.shift();
@@ -90,51 +69,54 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
             const [left, right] = tag_prop_to_parts(tag_split.shift()!);
 
             switch (left) {
-            case "Range":
-                switch (property_struct.property_type) {
-                case Property_Type.Property_Float: {
+            case "Range": {
+                switch (property_struct.property_data_type) {
+                case Property_Data_Type.Property_Data_Float: {
                     const [min_as_string, max_as_string] = right.split(";");
                     property_struct.float_range_min = parseFloat(min_as_string);
                     property_struct.float_range_max = parseFloat(max_as_string);
                 } break;
 
-                case Property_Type.Property_Int: {
+                case Property_Data_Type.Property_Data_Int: {
                     const [min_as_string, max_as_string] = right.split(";");
                     property_struct.int_range_min = parseInt(min_as_string);
                     property_struct.int_range_max = parseInt(max_as_string);
                 } break;
 
-                case Property_Type.Property_Bool: throw new Error("Boolean dose not have a range!");
+                case Property_Data_Type.Property_Data_Bool: { throw new Error("Boolean dose not have a range!"); }
 
-                default: throw new Error(`Unknown type in ${name}`);
+                default: { throw new Error(`Unknown data type in ${name}`); }
+                }
+            } break;
+
+            case "Default": {
+                switch (property_struct.property_data_type) {
+                    case Property_Data_Type.Property_Data_Float: { property_struct.float_default = parseFloat(right); } break;
+                    case Property_Data_Type.Property_Data_Int  : { property_struct.int_default   = parseInt  (right); } break;
+                    case Property_Data_Type.Property_Data_Bool : { property_struct.bool_default  = parse_bool(right); } break;
+
+                    default: { throw new Error(`Unknown data type in ${name}`); }
                 }
 
-                break;
+            } break;
 
-            case "Default":
-                switch (property_struct.property_type) {
-                case Property_Type.Property_Float: { property_struct.float_default = parseFloat(right); } break;
-                case Property_Type.Property_Int  : { property_struct.int_default   = parseInt  (right); } break;
-                case Property_Type.Property_Bool : { property_struct.bool_default  = parse_bool(right); } break;
+            case "Category": {
+                property_struct.category = right;
+            } break;
 
-                default: throw new Error(`Unknown type in ${name}`);
-                }
-
-                break;
-
-            default: throw new Error(`Unknown property ${left}`);
+            default: { throw new Error(`in ${name}, found unknown property '${left}'`); }
             }
         }
 
         // TODO some way to print an object.
         // log(Log_Type.Debug_Sliders, `property struct ${property_struct}`);
 
-        switch (property_struct.property_type) {
-        case Property_Type.Property_Float : { make_float_slider(slider_container, name, property_struct, set_property); } break;
-        case Property_Type.Property_Int   : { make_int_slider  (slider_container, name, property_struct, set_property); } break;
-        case Property_Type.Property_Bool  : { make_bool_slider (slider_container, name, property_struct, set_property); } break;
+        switch (property_struct.property_data_type) {
+        case Property_Data_Type.Property_Data_Float : { make_float_slider(slider_container, name, property_struct, set_property); } break;
+        case Property_Data_Type.Property_Data_Int   : { make_int_slider  (slider_container, name, property_struct, set_property); } break;
+        case Property_Data_Type.Property_Data_Bool  : { make_bool_slider (slider_container, name, property_struct, set_property); } break;
 
-        default: throw new Error(`Unknown property type ${property_struct.property_type}`);
+        default: { throw new Error(`in ${name}, found unknown property type ${property_struct.property_data_type}`); }
         }
     }
 };
@@ -254,3 +236,38 @@ function make_bool_slider(slider_container: HTMLElement, name: string, property_
         set_property(name, the_slider.checked);
     });
 };
+
+
+
+
+////////////////////////////////////
+//         Helper functions
+////////////////////////////////////
+
+function tag_prop_to_parts(prop: string): [string, string] {
+    const [left, right_with_junk] = prop.split(":");
+    const right = right_with_junk.slice(1, right_with_junk.length-1);
+    return [left, right];
+};
+
+function parse_bool(s: string): boolean {
+    // 1, t, T, TRUE, true, True,
+    // 0, f, F, FALSE, false, False
+    switch (s) {
+    case "1":
+    case "t": case "T":
+    case "TRUE": case "true": case "True": {
+        return true;
+    }
+
+    case "0":
+    case "f": case "F":
+    case "FALSE": case "false": case "False": {
+        return false;
+    }
+
+    default: throw new Error(`Unknown string in parseBool, was ${s}`);
+    }
+};
+
+
