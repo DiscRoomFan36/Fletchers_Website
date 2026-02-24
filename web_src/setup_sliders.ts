@@ -223,7 +223,7 @@ function make_int_slider(slider_container: HTMLElement, property_struct: Propert
             ${paragraph_text}: ${property_struct.int_default}
         </p>
         <input type="range" min="${property_struct.int_range_min}" max="${property_struct.int_range_max}" value="${property_struct.int_default}" class="slider" id="${slider_id}">
-        `;
+    `;
 
     const new_thing = document.createElement("div");
     new_thing.className = "rangeHolder";
@@ -261,9 +261,9 @@ function make_bool_slider(slider_container: HTMLElement, property_struct: Proper
     const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
 
     const html_string = `
-        <input type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle" id="${slider_id}">
         <label for="${slider_id}" class="checkbox_toggle_label">${paragraph_text}</label>
-        `;
+        <input type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle" id="${slider_id}">
+    `;
 
     const new_thing = document.createElement("div");
     new_thing.className = "rangeHolder";
