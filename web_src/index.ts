@@ -327,8 +327,11 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     let prev_timestamp = 0;
     const frame = (timestamp: number) => {
-        boid_canvas_render_ctx.canvas.width  = window.innerWidth;
-        boid_canvas_render_ctx.canvas.height = window.innerHeight;
+        const boidContainer = document.getElementById("boid_container");
+        if (boidContainer === null)    throw new Error("No element with id `boid_container` is found");
+
+        boid_canvas_render_ctx.canvas.width  = boidContainer.clientWidth;
+        boid_canvas_render_ctx.canvas.height = boidContainer.clientHeight;
 
         const delta_time = (timestamp - prev_timestamp);
         prev_timestamp = timestamp;

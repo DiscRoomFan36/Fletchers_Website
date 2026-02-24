@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "watch": "webpack -w",
-  
-    "watch_go_boid_stuff go"    : "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'go     build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
+
+    "watch_go_boid_stuff go":     "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'go     build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
     "watch_go_boid_stuff tinygo": "GOOS=js GOARCH=wasm nodemon --watch './go_boid_stuff/*.go' --signal SIGTERM -e 'go' --exec 'tinygo build -C ./go_boid_stuff/ -o ../dist/boid.wasm'",
 
     "serve": "http-server './' -p 8080",
@@ -16,12 +16,12 @@
   "author": "DiscRoomFan36",
   "license": "MIT",
   "devDependencies": {
+    "@types/offscreencanvas": "2019.7.3",
+    "http-server": "14.1.1",
+    "nodemon": "^3.1.14",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3",
-    "webpack": "5.99.9",
-    "webpack-cli": "6.0.1",
-    "@types/offscreencanvas": "2019.7.3",
-    "nodemon": "3.1.11",
-    "http-server": "14.1.1"
+    "webpack": "^5.105.2",
+    "webpack-cli": "6.0.1"
   }
 }
