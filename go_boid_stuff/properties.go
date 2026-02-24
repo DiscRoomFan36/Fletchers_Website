@@ -27,44 +27,46 @@ type Properties struct {
     // straight to javascript, so we may have to parse it twice, but we
     // can do the parsing the same way both times.
 
-    Max_Boids          int `Property:"int" Range:"0;5000" Default:"1000"`;
+    Max_Boids          int `Property:"int" Range:"0;5000" Default:"1000" Category:"Boid_Spawning"`;
     // how many spawn / de-spawn per second.
-    Boid_Spawn_Rate    Boid_Float `Property:"float" Range:"10;1000" Default:"100"`;
+    Boid_Spawn_Rate    Boid_Float `Property:"float" Range:"10;1000" Default:"100" Category:"Boid_Spawning"`;
 
-    Visual_Range            Boid_Float `Property:"float" Range:"1;25" Default:"15"`;
-    Separation_Min_Distance Boid_Float `Property:"float" Range:"0;20" Default:"8.5"`;
+    Visual_Range            Boid_Float `Property:"float" Range:"1;25" Default:"15" Category:"Normal_Boid_Parameters"`;
+    Separation_Min_Distance Boid_Float `Property:"float" Range:"0;20" Default:"8.5" Category:"Normal_Boid_Parameters"`;
 
-    Separation_Factor Boid_Float `Property:"float" Range:"0;1" Default:"0.50"`; // 0.15
-    Alignment_Factor  Boid_Float `Property:"float" Range:"0;1" Default:"0.30"`; // 0.15
-    Cohesion_Factor   Boid_Float `Property:"float" Range:"0;1" Default:"0.15"`; // 0.015
+    Separation_Factor Boid_Float `Property:"float" Range:"0;1" Default:"0.50" Category:"Normal_Boid_Parameters"`; // 0.15
+    Alignment_Factor  Boid_Float `Property:"float" Range:"0;1" Default:"0.30" Category:"Normal_Boid_Parameters"`; // 0.15
+    Cohesion_Factor   Boid_Float `Property:"float" Range:"0;1" Default:"0.15" Category:"Normal_Boid_Parameters"`; // 0.015
 
-    Margin             Boid_Float `Property:"float" Range:"0;100" Default:"50"`;
-    Margin_Turn_Factor Boid_Float `Property:"float" Range:"0;20" Default:"4"`;
+    Random_Draw_Factor        Boid_Float `Property:"float" Range:"0;10" Default:"2" Category:"Random_Draw"`;
+    Random_Draw_Time_Dilation Boid_Float `Property:"float" Range:"1;10" Default:"2" Category:"Random_Draw"`;
 
-    Random_Draw_Factor        Boid_Float `Property:"float" Range:"0;10" Default:"2"`;
-    Random_Draw_Time_Dilation Boid_Float `Property:"float" Range:"1;10" Default:"2"`;
+    Center_Draw_Radius_Div Boid_Float `Property:"float" Range:"0;10" Default:"3" Category:"Center_Draw"`;
+    Center_Draw_Factor     Boid_Float `Property:"float" Range:"0;10" Default:"1" Category:"Center_Draw"`;
 
-    Center_Draw_Radius_Div Boid_Float `Property:"float" Range:"0;10" Default:"3"`;
-    Center_Draw_Factor     Boid_Float `Property:"float" Range:"0;10" Default:"1"`;
-
-    Wind_X_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0"`;
-    Wind_Y_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0"`;
+    Wind_X_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0" Category:"Wind"`;
+    Wind_Y_Factor Boid_Float `Property:"float" Range:"-10;10" Default:"0" Category:"Wind"`;
 
     Mouse_Draw_Factor Boid_Float `Property:"float" Range:"1;20" Default:"2"`;
 
-    Num_Boid_Rays      int        `Property:"int" Range:"1;10" Default:"5"`;
+    // Boid Vision
+    Num_Boid_Rays      int        `Property:"int" Range:"1;10" Default:"5" Category:"Vision"`;
     // in radians
-    Visual_Cone_Radius Boid_Float `Property:"float" Range:"0;360" Default:"140"`;
-    Boid_Vision_Factor Boid_Float `Property:"float" Range:"0;5" Default:"1"`;
-
-    Final_Acceleration_Boost Boid_Float `Property:"float" Range:"1;25" Default:"10"`; // 5
-    Final_Drag_Coefficient   Boid_Float `Property:"float" Range:"0;2" Default:"0.15"`; // 1
+    Visual_Cone_Radius Boid_Float `Property:"float" Range:"0;360" Default:"140" Category:"Vision"`;
+    Boid_Vision_Factor Boid_Float `Property:"float" Range:"0;5" Default:"1" Category:"Vision"`;
 
 
-    Toggle_Wrapping bool `Property:"bool" Default:"true"`;
-    Toggle_Bounding bool `Property:"bool" Default:"false"`;
+    Final_Acceleration_Boost Boid_Float `Property:"float" Range:"1;25" Default:"10" Category:"Physics"`; // 5
+    Final_Drag_Coefficient   Boid_Float `Property:"float" Range:"0;2" Default:"0.15" Category:"Physics"`; // 1
 
 
+    Toggle_Wrapping bool `Property:"bool" Default:"true" Category:"Boundary_Behavior"`;
+    Toggle_Bounding bool `Property:"bool" Default:"false" Category:"Boundary_Behavior"`;
+
+    Margin             Boid_Float `Property:"float" Range:"0;100" Default:"50" Category:"Boundary_Behavior"`;
+    Margin_Turn_Factor Boid_Float `Property:"float" Range:"0;20" Default:"4" Category:"Boundary_Behavior"`;
+
+    // boid size for drawing and collision.
     Boid_Radius Boid_Float `Property:"float" Range:"0;10" Default:"2.5"`;
 
 

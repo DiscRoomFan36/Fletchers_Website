@@ -1,7 +1,7 @@
 
 import { Log_Type, log } from "./logger";
 
-const DEFAULT_CATEGORY = "None";
+const DEFAULT_CATEGORY = "Misc";
 
 class Property_Struct {
     property_name:      string = "";
