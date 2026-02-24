@@ -1,6 +1,30 @@
 
 import { Log_Type, log } from "./logger";
 
+const DEFAULT_CATEGORY = "None";
+
+class Property_Struct {
+    property_name:      string = "";
+
+    property_data_type: Property_Data_Type = Property_Data_Type.None;
+
+    // Float properties
+    float_range_min:    number = 0;
+    float_range_max:    number = 0;
+    float_default:      number = 0;
+
+    // Int properties
+    int_range_min:      number = 0;
+    int_range_max:      number = 0;
+    int_default:        number = 0;
+
+    // Bool properties
+    bool_default:       boolean = false;
+
+    // for nice property visualization.
+    category:           string = DEFAULT_CATEGORY;
+};
+
 enum Property_Data_Type {
     None,
     Property_Data_Float,
@@ -8,26 +32,6 @@ enum Property_Data_Type {
     Property_Data_Bool,
 };
 
-class Property_Struct {
-    property_data_type:   Property_Data_Type = Property_Data_Type.None;
-
-    // Float properties
-    float_range_min: number = 0;
-    float_range_max: number = 0;
-    float_default:   number = 0;
-
-    // Int properties
-    int_range_min:   number = 0;
-    int_range_max:   number = 0;
-    int_default:     number = 0;
-
-    // Bool properties
-    bool_default:    boolean = false;
-
-
-    // for nice property visualization.
-    category:        string = "None";
-};
 
 
 // puts some sliders up to control some parameters
@@ -41,6 +45,8 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 
     properties.sort(); // hope someone else wasn't using this.
 
+    const property_structs: Property_Struct[] = [];
+
     for (const [name, tag] of properties) {
 
         log(Log_Type.Debug_Sliders, `typescript: ${name}: ${tag}`);
@@ -53,13 +59,16 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
         if (prop_property != "Property")    throw new Error(`First property is not property, tag was ${tag}`);
 
         const property_struct = new Property_Struct();
+        property_struct.property_name = name;
+
+        if (property_struct.category != DEFAULT_CATEGORY)    throw new Error(`in ${name}, property_struct.category was set to ${property_struct.category} but it should be ${DEFAULT_CATEGORY} at this point`);
 
         switch (property_data_type) {
         case "float": { property_struct.property_data_type = Property_Data_Type.Property_Data_Float; } break;
         case "int":   { property_struct.property_data_type = Property_Data_Type.Property_Data_Int;   } break;
         case "bool":  { property_struct.property_data_type = Property_Data_Type.Property_Data_Bool;  } break;
 
-        default: { throw new Error(`Unknown property data type ${property_data_type}`); }
+        default: { throw new Error(`in ${name}, Unknown property data type ${property_data_type}`); }
         }
 
         tag_split.shift();
@@ -108,16 +117,50 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
             }
         }
 
-        // TODO some way to print an object.
-        // log(Log_Type.Debug_Sliders, `property struct ${property_struct}`);
+        property_structs.push(property_struct);
+    }
 
-        switch (property_struct.property_data_type) {
-        case Property_Data_Type.Property_Data_Float : { make_float_slider(slider_container, name, property_struct, set_property); } break;
-        case Property_Data_Type.Property_Data_Int   : { make_int_slider  (slider_container, name, property_struct, set_property); } break;
-        case Property_Data_Type.Property_Data_Bool  : { make_bool_slider (slider_container, name, property_struct, set_property); } break;
+    // Group property_structs by category for collapsible rendering
+    const category_map = new Map<string, Property_Struct[]>();
+    for (const ps of property_structs) {
+        const category = ps.category || DEFAULT_CATEGORY;
 
-        default: { throw new Error(`in ${name}, found unknown property type ${property_struct.property_data_type}`); }
+        if (!category_map.has(category)) category_map.set(category, []);
+        category_map.get(category)!.push(ps);
+    }
+
+    // Sort categories alphabetically, but place the DEFAULT_CATEGORY last
+    const categories = Array.from(category_map.keys()).sort((a,b) => {
+        if (a === DEFAULT_CATEGORY) return +1;
+        if (b === DEFAULT_CATEGORY) return -1;
+        return a.localeCompare(b);
+    });
+
+    for (const category of categories) {
+        const items = category_map.get(category)!;
+
+        const details = document.createElement("details");
+        details.className = "categoryGroup";
+
+        const summary = document.createElement("summary");
+        summary.className = "categoryHeader";
+        summary.textContent = category.replace(/_/g, " "); 
+        details.appendChild(summary);
+
+        const body = document.createElement("div");
+        body.className = "categoryBody";
+
+        for (const property_struct of items) {
+            switch (property_struct.property_data_type) {
+            case Property_Data_Type.Property_Data_Float : { make_float_slider(body, property_struct, set_property); } break;
+            case Property_Data_Type.Property_Data_Int   : { make_int_slider  (body, property_struct, set_property); } break;
+            case Property_Data_Type.Property_Data_Bool  : { make_bool_slider (body, property_struct, set_property); } break;
+            default: { throw new Error(`in ${property_struct.property_name}, found unknown property type ${property_struct.property_data_type}`); }
+            }
         }
+
+        details.appendChild(body);
+        slider_container.appendChild(details);
     }
 };
 
@@ -127,17 +170,17 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 //         Make a slider for a float
 ///////////////////////////////////////////////
 
-function make_float_slider(slider_container: HTMLElement, name: string, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const slider_id      = `slider_${name}`;
+function make_float_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
+    const slider_id      = `slider_${property_struct.property_name}`;
     const paragraph_id   = `${slider_id}_paragraph`;
-    const paragraph_text = `${name.replace(/_/g, " ")}`;
+    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
 
     const html_string = `
         <p class="sliderKey" id="${paragraph_id}">
             ${paragraph_text}: ${property_struct.float_default}
         </p>
         <input type="range" min="${property_struct.float_range_min}" max="${property_struct.float_range_max}" value="${property_struct.float_default}" step="0.005" class="slider" id="${slider_id}">
-        `;
+    `;
 
     const new_element = document.createElement("div");
     new_element.className = "rangeHolder";
@@ -145,22 +188,23 @@ function make_float_slider(slider_container: HTMLElement, name: string, property
 
     slider_container.appendChild(new_element);
 
-    const slider = document.getElementById(slider_id) as HTMLInputElement | null;
-    if (slider === null)    throw new Error("Could not find the slider we just made...");
+    const slider = new_element.querySelector('input') as HTMLInputElement | null;
+    if (slider === null)    throw new Error(`Could not find input for slider id='${slider_id}' inside its container`);
 
+    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
 
     slider.addEventListener("input", (event) => {
         const the_slider = event.target as HTMLInputElement | null
-        if (the_slider === null)    throw new Error("Target was null, did its own element get deleted underneath itself?")
+        if (the_slider === null)    throw new Error(`Slider input for '${property_struct.property_name}' disappeared unexpectedly`)
 
         const slider_number = Number(the_slider.value);
 
-        const slider_text = document.getElementById(paragraph_id) as HTMLParagraphElement | null;
-        if (slider_text === null)    throw new Error(`could not find slider_text ${paragraph_id}`);
+        const slider_text = new_element.querySelector(`#${paragraph_id}`) as HTMLParagraphElement | null;
+        if (slider_text === null)    throw new Error(`Could not find label paragraph '${paragraph_id}' for slider '${slider_id}'`);
 
         slider_text.textContent = `${paragraph_text}: ${slider_number}`;
 
-        set_property(name, slider_number);
+        set_property(property_struct.property_name, slider_number);
     });
 };
 
@@ -169,16 +213,16 @@ function make_float_slider(slider_container: HTMLElement, name: string, property
 //          Make a slider for an int
 ///////////////////////////////////////////////
 
-function make_int_slider(slider_container: HTMLElement, name: string, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const id = `slider_${name}`;
-    const para_id = `${id}_paragraph`;
-    const paragraph_text = `${name.replace(/_/g, " ")}`;
+function make_int_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
+    const slider_id = `slider_${property_struct.property_name}`;
+    const para_id = `${slider_id}_paragraph`;
+    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
 
     const html_string = `
         <p class="sliderKey" id="${para_id}">
             ${paragraph_text}: ${property_struct.int_default}
         </p>
-        <input type="range" min="${property_struct.int_range_min}" max="${property_struct.int_range_max}" value="${property_struct.int_default}" class="slider" id="${id}">
+        <input type="range" min="${property_struct.int_range_min}" max="${property_struct.int_range_max}" value="${property_struct.int_default}" class="slider" id="${slider_id}">
         `;
 
     const new_thing = document.createElement("div");
@@ -187,22 +231,23 @@ function make_int_slider(slider_container: HTMLElement, name: string, property_s
 
     slider_container.appendChild(new_thing);
 
-    const slider = document.getElementById(id) as HTMLInputElement | null;
-    if (slider === null)    throw new Error("Could not find the slider");
+    const slider = new_thing.querySelector('input') as HTMLInputElement | null;
+    if (slider === null)    throw new Error(`Could not find input for slider id='${slider_id}' inside its container`);
 
+    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
 
     slider.addEventListener("input", (event) => {
         const the_slider = event.target as HTMLInputElement | null
-        if (the_slider === null)    throw new Error("Target was null, did its own element get deleted underneath itself?")
+        if (the_slider === null)    throw new Error(`Slider input for '${property_struct.property_name}' disappeared unexpectedly`)
 
         const slider_number = Number(the_slider.value);
 
-        const slider_text = document.getElementById(para_id) as HTMLParagraphElement | null;
-        if (slider_text === null)    throw new Error(`could not find slider_text ${para_id}`);
+        const slider_text = new_thing.querySelector(`#${para_id}`) as HTMLParagraphElement | null;
+        if (slider_text === null)    throw new Error(`Could not find label paragraph '${para_id}' for slider '${slider_id}'`);
 
         slider_text.textContent = `${paragraph_text}: ${slider_number}`;
 
-        set_property(name, slider_number);
+        set_property(property_struct.property_name, slider_number);
     });
 };
 
@@ -211,13 +256,13 @@ function make_int_slider(slider_container: HTMLElement, name: string, property_s
 //     Make a slider for an boolean toggle
 ///////////////////////////////////////////////
 
-function make_bool_slider(slider_container: HTMLElement, name: string, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const id = `slider_${name}`;
-    const paragraph_text = `${name.replace(/_/g, " ")}`;
+function make_bool_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
+    const slider_id = `slider_${property_struct.property_name}`;
+    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
 
     const html_string = `
-        <input type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle" id="${id}">
-        <label for="${id}" class="checkbox_toggle_label">${paragraph_text}</label>
+        <input type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle" id="${slider_id}">
+        <label for="${slider_id}" class="checkbox_toggle_label">${paragraph_text}</label>
         `;
 
     const new_thing = document.createElement("div");
@@ -226,14 +271,16 @@ function make_bool_slider(slider_container: HTMLElement, name: string, property_
 
     slider_container.appendChild(new_thing);
 
-    const slider = document.getElementById(id) as HTMLInputElement | null;
-    if (slider === null) throw new Error("Could not find the slider");
+    const slider = new_thing.querySelector('input') as HTMLInputElement | null;
+    if (slider === null) throw new Error(`Could not find checkbox input for id='${slider_id}' inside its container`);
+
+    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
 
     slider.addEventListener("input", (event) => {
         const the_slider = event.target as HTMLInputElement | null;
-        if (the_slider === null)    throw new Error("Target was null, did own own element get deleted?");
+        if (the_slider === null)    throw new Error(`Checkbox input for '${property_struct.property_name}' disappeared unexpectedly`);
 
-        set_property(name, the_slider.checked);
+        set_property(property_struct.property_name, the_slider.checked);
     });
 };
 
