@@ -4,6 +4,9 @@
     src: url('fonts/iosevka-light.ttf');
 }
 
+/* Make sizing predictable so padding doesn't cause overflow */
+*, *::before, *::after { box-sizing: border-box; }
+
 
 :root {
     --text-color: rgb(196, 128, 57);
@@ -148,12 +151,36 @@ summary {
     font-size: 1.5rem;
 }
 
+/* Make the summary look like a button and add a caret */
+summary#settings_summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+}
+summary#settings_summary::after {
+    content: '\25BE'; /* down caret */
+    display: inline-block;
+    transform-origin: center;
+}
+
 /* https://www.w3schools.com/howto/howto_js_rangeslider.asp */
 #slideContainer {
-    position: absolute;
+    /* default: inline flow for small screens */
+    position: static;
+    width: 100%;
+    max-width: 92vw;
+    max-height: none;
+    overflow: visible;
 
-    display: grid;
-    grid-template-columns: 10rem 10rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
 }
 
 .rangeHolder {
@@ -184,7 +211,11 @@ summary {
 .sliderKey {
     color: lightgoldenrodyellow;
     margin: 0.2rem;
+    white-space: normal; /* allow wrapping to avoid overflow */
+    overflow-wrap: anywhere;
 }
+
+details { overflow: visible; }
 .slider {
     -webkit-appearance: none;
     appearance: none;
@@ -214,4 +245,93 @@ summary {
     border-radius: 50%;
     background: #04AA6D;
     cursor: pointer;
+}
+
+/* Category groups (collapsible) */
+.categoryGroup {
+    margin: 0.4rem 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.categoryHeader {
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    color: lightgoldenrodyellow;
+}
+.categoryBody {
+    padding: 0.6rem;
+    display: grid;
+    /* allow items to wrap into multiple columns but be able to shrink */
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.5rem;
+    align-items: start;
+}
+
+.rangeHolder {
+    background-color: #151515;
+
+    width: 100%;
+
+    justify-self: stretch;
+
+    padding: 0.6rem;
+    border-radius: 0.35rem;
+
+    display: flex;
+    flex-direction: column;
+    opacity: 0.95;
+    align-items: stretch;
+
+    margin: 0.1rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.6);
+    min-width: 0; /* allow children to shrink inside grid */
+    overflow: visible;
+}
+.rangeHolder * { box-sizing: border-box; }
+.rangeHolder { max-width: 100%; }
+
+.rangeHolder .sliderKey { display: block; width: 100%; }
+.rangeHolder input.slider { width: 100%; max-width: 100%; }
+.rangeHolder input[type="checkbox"] { max-width: none; }
+.checkbox_toggle_label { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+.rangeHolder * { box-sizing: border-box; }
+.rangeHolder { max-width: 100%; }
+.rangeHolder:hover { opacity: 1; }
+
+/* Constrain boid canvas into a centered container */
+#boid_container {
+    width: 90%;
+    max-width: 1200px;
+    height: 60vh;
+    margin: 2rem auto;
+    background: #121212;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+    position: relative;
+}
+#boid_container canvas { width: 100%; height: 100%; display: block; }
+
+/* Disable popout: force slideContainer to render inline under the summary
+   and remove animations/absolute positioning that caused off-screen layout. */
+details > #slideContainer {
+    position: static !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 92vw !important;
+    box-shadow: none !important;
+}
+
+details[open] > #slideContainer {
+    transform: none !important;
+    opacity: 1 !important;
 }
