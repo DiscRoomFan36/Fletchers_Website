@@ -5,7 +5,7 @@ import { Log_Type, log, DEBUG_DISPLAY } from "./logger";
 import { setup_sliders } from "./setup_sliders";
 
 // cool trick
-const IN_DEV_MODE = (window.location.hostname == "localhost");
+const IN_DEV_MODE = (window.location.hostname === "localhost");
 
 
 // NOTE all names correspond with stuff in go,
@@ -254,7 +254,7 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     { // Handle slider stuff
         const boid_properties = Object.entries(go.get_properties());
-        if (boid_properties.length == 0) throw new Error("No properties where given to javascript!");
+        if (boid_properties.length === 0) throw new Error("No properties where given to javascript!");
 
         function set_property(name: string, value: number|boolean) {
             // https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript
@@ -285,14 +285,14 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         });
         // this will break if the user slides there mouse outside of the screen while clicking, but this is the web, people expect it to suck.
         root.addEventListener('mousedown', (ev) => {
-            if (ev.button == Mouse_Buttons.Left)      mouse.left_down   = true;
-            if (ev.button == Mouse_Buttons.Middle)    mouse.middle_down = true;
-            if (ev.button == Mouse_Buttons.Right)     mouse.right_down  = true;
+            if (ev.button === Mouse_Buttons.Left)      mouse.left_down   = true;
+            if (ev.button === Mouse_Buttons.Middle)    mouse.middle_down = true;
+            if (ev.button === Mouse_Buttons.Right)     mouse.right_down  = true;
         });
         root.addEventListener('mouseup',   (ev) => {
-            if (ev.button == Mouse_Buttons.Left)      mouse.left_down   = false;
-            if (ev.button == Mouse_Buttons.Middle)    mouse.middle_down = false;
-            if (ev.button == Mouse_Buttons.Right)     mouse.right_down  = false;
+            if (ev.button === Mouse_Buttons.Left)      mouse.left_down   = false;
+            if (ev.button === Mouse_Buttons.Middle)    mouse.middle_down = false;
+            if (ev.button === Mouse_Buttons.Right)     mouse.right_down  = false;
         });
     }
 

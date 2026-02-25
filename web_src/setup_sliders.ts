@@ -151,12 +151,7 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
         body.className = "categoryBody";
 
         for (const property_struct of items) {
-            switch (property_struct.property_data_type) {
-            case Property_Data_Type.Property_Data_Float : { make_float_slider(body, property_struct, set_property); } break;
-            case Property_Data_Type.Property_Data_Int   : { make_int_slider  (body, property_struct, set_property); } break;
-            case Property_Data_Type.Property_Data_Bool  : { make_bool_slider (body, property_struct, set_property); } break;
-            default: { throw new Error(`in ${property_struct.property_name}, found unknown property type ${property_struct.property_data_type}`); }
-            }
+            make_slider(body, property_struct, set_property);
         }
 
         details.appendChild(body);
@@ -165,125 +160,80 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
 };
 
 
+function make_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
+    const slider_id  = `slider_${property_struct.property_name}`;
+    const label_text = property_struct.property_name.replace(/_/g, " ");
 
-///////////////////////////////////////////////
-//         Make a slider for a float
-///////////////////////////////////////////////
+    switch (property_struct.property_data_type) {
+        case Property_Data_Type.Property_Data_Bool: {
+            const html_string = `
+                <label for="${slider_id}" class="checkbox_toggle_label">${label_text}</label>
+                <input  id="${slider_id}" type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle">
+            `;
 
-function make_float_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const slider_id      = `slider_${property_struct.property_name}`;
-    const paragraph_id   = `${slider_id}_paragraph`;
-    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
+            const wrapper = document.createElement("div");
+            wrapper.className = "rangeHolder";
+            wrapper.innerHTML = html_string;
+            slider_container.appendChild(wrapper);
 
-    const html_string = `
-        <p class="sliderKey" id="${paragraph_id}">
-            ${paragraph_text}: ${property_struct.float_default}
-        </p>
-        <input type="range" min="${property_struct.float_range_min}" max="${property_struct.float_range_max}" value="${property_struct.float_default}" step="0.005" class="slider" id="${slider_id}">
-    `;
+            const slider_element = wrapper.querySelector('input') as HTMLInputElement | null;
+            if (slider_element === null) throw new Error(`Could not find checkbox input for id='${slider_id}' inside its container`);
 
-    const new_element = document.createElement("div");
-    new_element.className = "rangeHolder";
-    new_element.innerHTML = html_string;
+            if (slider_element.id != slider_id) throw new Error(`Found slider with id='${slider_element.id}' but expected id='${slider_id}'`);
 
-    slider_container.appendChild(new_element);
+            slider_element.addEventListener("input", (event) => {
+                const the_slider = event.target as HTMLInputElement | null;
+                if (the_slider === null)    throw new Error(`Checkbox input for '${property_struct.property_name}' disappeared unexpectedly`);
 
-    const slider = new_element.querySelector('input') as HTMLInputElement | null;
-    if (slider === null)    throw new Error(`Could not find input for slider id='${slider_id}' inside its container`);
+                set_property(property_struct.property_name, the_slider.checked);
+            });
+        } break;
 
-    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
+        case Property_Data_Type.Property_Data_Float:
+        case Property_Data_Type.Property_Data_Int: {
+            const is_float_slider = property_struct.property_data_type === Property_Data_Type.Property_Data_Float;
 
-    slider.addEventListener("input", (event) => {
-        const the_slider = event.target as HTMLInputElement | null
-        if (the_slider === null)    throw new Error(`Slider input for '${property_struct.property_name}' disappeared unexpectedly`)
+            const min_value     = is_float_slider ? property_struct.float_range_min : property_struct.int_range_min;
+            const max_value     = is_float_slider ? property_struct.float_range_max : property_struct.int_range_max;
+            const default_value = is_float_slider ? property_struct.float_default   : property_struct.int_default;
 
-        const slider_number = Number(the_slider.value);
+            const step = is_float_slider ? 0.005 : 1;
 
-        const slider_text = new_element.querySelector(`#${paragraph_id}`) as HTMLParagraphElement | null;
-        if (slider_text === null)    throw new Error(`Could not find label paragraph '${paragraph_id}' for slider '${slider_id}'`);
+            const paragraph_id = `${slider_id}_paragraph`;
 
-        slider_text.textContent = `${paragraph_text}: ${slider_number}`;
+            const html_string = `
+                <p class="sliderKey" id="${paragraph_id}"> ${label_text}: ${default_value} </p>
+                <input type="range" min="${min_value}" max="${max_value}" value="${default_value}" step="${step}" class="slider" id="${slider_id}">
+            `;
 
-        set_property(property_struct.property_name, slider_number);
-    });
-};
+            const wrapper = document.createElement("div");
+            wrapper.className = "rangeHolder";
+            wrapper.innerHTML = html_string;
+            slider_container.appendChild(wrapper);
 
+            const slider_element = wrapper.querySelector('input') as HTMLInputElement | null;
+            if (slider_element === null)    throw new Error(`Could not find input for slider id='${slider_id}' inside its container`);
 
-///////////////////////////////////////////////
-//          Make a slider for an int
-///////////////////////////////////////////////
+            if (slider_element.id != slider_id) throw new Error(`Found slider with id='${slider_element.id}' but expected id='${slider_id}'`);
 
-function make_int_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const slider_id = `slider_${property_struct.property_name}`;
-    const para_id = `${slider_id}_paragraph`;
-    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
+            slider_element.addEventListener("input", (event) => {
+                const the_slider = event.target as HTMLInputElement | null
+                if (the_slider === null)    throw new Error(`Slider input for '${property_struct.property_name}' disappeared unexpectedly`)
 
-    const html_string = `
-        <p class="sliderKey" id="${para_id}">
-            ${paragraph_text}: ${property_struct.int_default}
-        </p>
-        <input type="range" min="${property_struct.int_range_min}" max="${property_struct.int_range_max}" value="${property_struct.int_default}" class="slider" id="${slider_id}">
-    `;
+                const slider_number = is_float_slider ? parseFloat(the_slider.value) : parseInt(the_slider.value);
 
-    const new_thing = document.createElement("div");
-    new_thing.className = "rangeHolder";
-    new_thing.innerHTML = html_string;
+                const slider_text = wrapper.querySelector(`#${paragraph_id}`) as HTMLParagraphElement | null;
+                if (slider_text === null)    throw new Error(`Could not find label paragraph '${paragraph_id}' for slider '${slider_id}'`);
 
-    slider_container.appendChild(new_thing);
+                slider_text.textContent = `${label_text}: ${slider_number}`;
 
-    const slider = new_thing.querySelector('input') as HTMLInputElement | null;
-    if (slider === null)    throw new Error(`Could not find input for slider id='${slider_id}' inside its container`);
+                set_property(property_struct.property_name, slider_number);
+            });
+        } break;
 
-    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
-
-    slider.addEventListener("input", (event) => {
-        const the_slider = event.target as HTMLInputElement | null
-        if (the_slider === null)    throw new Error(`Slider input for '${property_struct.property_name}' disappeared unexpectedly`)
-
-        const slider_number = Number(the_slider.value);
-
-        const slider_text = new_thing.querySelector(`#${para_id}`) as HTMLParagraphElement | null;
-        if (slider_text === null)    throw new Error(`Could not find label paragraph '${para_id}' for slider '${slider_id}'`);
-
-        slider_text.textContent = `${paragraph_text}: ${slider_number}`;
-
-        set_property(property_struct.property_name, slider_number);
-    });
-};
-
-
-///////////////////////////////////////////////
-//     Make a slider for an boolean toggle
-///////////////////////////////////////////////
-
-function make_bool_slider(slider_container: HTMLElement, property_struct: Property_Struct, set_property: (name:string, value:number|boolean) => void) {
-    const slider_id = `slider_${property_struct.property_name}`;
-    const paragraph_text = `${property_struct.property_name.replace(/_/g, " ")}`;
-
-    const html_string = `
-        <label for="${slider_id}" class="checkbox_toggle_label">${paragraph_text}</label>
-        <input type="checkbox" ${property_struct.bool_default ? "checked" : ""} class="checkbox_toggle" id="${slider_id}">
-    `;
-
-    const new_thing = document.createElement("div");
-    new_thing.className = "rangeHolder";
-    new_thing.innerHTML = html_string;
-
-    slider_container.appendChild(new_thing);
-
-    const slider = new_thing.querySelector('input') as HTMLInputElement | null;
-    if (slider === null) throw new Error(`Could not find checkbox input for id='${slider_id}' inside its container`);
-
-    if (slider.id != slider_id) throw new Error(`Found slider with id='${slider.id}' but expected id='${slider_id}'`);
-
-    slider.addEventListener("input", (event) => {
-        const the_slider = event.target as HTMLInputElement | null;
-        if (the_slider === null)    throw new Error(`Checkbox input for '${property_struct.property_name}' disappeared unexpectedly`);
-
-        set_property(property_struct.property_name, the_slider.checked);
-    });
-};
-
+        default: { throw new Error(`in ${property_struct.property_name}, found unknown property type ${property_struct.property_data_type}`); }
+    }
+}
 
 
 
