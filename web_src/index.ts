@@ -125,6 +125,12 @@ function render_boids(display: Display, go: Go_Functions) {
     // although that might introduce issues when the boid wasm hasn't loaded.
     const collidable_rectangles = get_all_collidable_rects();
 
+    // make sure the rectangles are in canvas space.
+    for (const rect of collidable_rectangles) {
+        rect.x -= display.render_ctx.canvas.getBoundingClientRect().x;
+        rect.y -= display.render_ctx.canvas.getBoundingClientRect().y;
+    }
+
 
     const BOID_CANVAS_SQUISH_FACTOR = 1;
     // this is the canvas that the wasm is going to draw into.
@@ -281,7 +287,11 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         const root = document.getRootNode() as HTMLHtmlElement;
 
         root.addEventListener('mousemove', (ev) => {
-            mouse.pos = {x: ev.x, y: ev.y}
+            mouse.pos = {x: ev.x, y: ev.y};
+
+            // adjust the position to map into canvas space. we only use this for boid input.
+            mouse.pos.x -= display.render_ctx.canvas.getBoundingClientRect().x;
+            mouse.pos.y -= display.render_ctx.canvas.getBoundingClientRect().y;
         });
         // this will break if the user slides there mouse outside of the screen while clicking, but this is the web, people expect it to suck.
         root.addEventListener('mousedown', (ev) => {
