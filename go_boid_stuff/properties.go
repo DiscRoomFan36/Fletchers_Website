@@ -74,12 +74,12 @@ type Properties struct {
     // but i parse the tags in a dumb way, maybe later.
     //
     // TODO extra spaces are also bad apparently...
-    Debug_Draw_Spacial_Array  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Boundary       bool `Property:"bool" Default:"true" Category:"Debug_Draw"`;
-    Debug_Draw_Heading        bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Visual_Ranges  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Rectangles     bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Debug_Draw_Mouse_Position bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Spacial_Array  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Boundary       bool `Property:"bool" Default:"true" Category:"Debug_Draw"`;
+    Draw_Heading        bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Visual_Ranges  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Rectangles     bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Mouse_Position bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
 }
 
 
