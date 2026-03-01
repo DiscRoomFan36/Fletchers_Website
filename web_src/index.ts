@@ -213,7 +213,7 @@ const delta_times: number[] = [];
 // 
 // TODO remove new_render_time, and new_delta_time, just make a class or something.
 function render_debug_info(display: Display, new_render_time: number, new_delta_time: number) {
-    const FONT_SIZE = 28;
+    const FONT_SIZE = 24;
     display.render_ctx.font = `${FONT_SIZE}px bold`;
 
     render_times.push(new_render_time);
@@ -237,13 +237,13 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         labels.push(`Render/Sec (MAX): ${(1/render_avg*1000).toFixed(2)}`);
     }
 
-    const PADDING = 70;
+    const EDGE_PADDING = 40;
     const SHADOW_OFFSET = FONT_SIZE*0.06;
     for (let i = 0; i < labels.length; i++) {
         display.render_ctx.fillStyle = "black";
-        display.render_ctx.fillText(labels[i], PADDING, PADDING + FONT_SIZE*i);
+        display.render_ctx.fillText(labels[i], EDGE_PADDING + SHADOW_OFFSET, EDGE_PADDING - SHADOW_OFFSET + FONT_SIZE*i);
         display.render_ctx.fillStyle = "white";
-        display.render_ctx.fillText(labels[i], PADDING + SHADOW_OFFSET, PADDING - SHADOW_OFFSET + FONT_SIZE*i);
+        display.render_ctx.fillText(labels[i], EDGE_PADDING, EDGE_PADDING + FONT_SIZE*i);
     }
 };
 
