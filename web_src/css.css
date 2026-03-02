@@ -25,6 +25,14 @@ body {
     margin: 0;
     /* NOTE for some reason the canvas doesn't extend to the bottom of the page... */
     background-color: #2a3352;
+    /* layered repeating pattern: small triangle tile + subtle diagonal wash */
+    background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><polygon points='6,2 10,10 2,10' fill='%23ffffff' opacity='0.05'/></svg>"),
+        linear-gradient(135deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    /* keep triangle visual size the same by using a slightly larger tile canvas (28px) with the small polygon coords */
+    background-size: 28px 28px, auto;
+    background-repeat: repeat;
+    background-attachment: fixed;
 
     font-family: 'Iosevka', serif;
 }
