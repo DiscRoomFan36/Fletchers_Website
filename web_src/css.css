@@ -5,7 +5,9 @@
 }
 
 /* Make sizing predictable so padding doesn't cause overflow */
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
 
 :root {
@@ -149,7 +151,15 @@ canvas {
     padding: 0.6rem 1rem;
 }
 
-#footer_links { max-width: 1200px; margin: 0 auto; display: flex; gap: 3.5rem; justify-content: center; align-items: center; padding: 0 1rem; }
+#footer_links {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 3.5rem;
+    justify-content: center;
+    align-items: center;
+    padding: 0 1rem;
+}
 
 #footer_links a, #footer_links #email {
     color: var(--text-color);
@@ -160,15 +170,21 @@ canvas {
 
 /* Larger on wide screens */
 @media (min-width: 1000px) {
-    #footer_links a, #footer_links #email { font-size: 1.6rem; }
+    #footer_links a, #footer_links #email {
+        font-size: 1.6rem;
+    }
 }
 
 /* Provide more breathing room on very wide screens */
 @media (min-width: 1400px) {
-    #footer_links { gap: 9rem; }
+    #footer_links {
+        gap: 9rem;
+    }
 }
 
-a:hover { color: rgb(185, 82, 134); }
+a:hover {
+    color: rgb(185, 82, 134);
+}
 
 /* overlay statements inside the boid container */
 .overlay_statements {
@@ -196,17 +212,37 @@ a:hover { color: rgb(185, 82, 134); }
     border-radius: 6px;
 }
 
-.overlay_statements p:nth-child(1) { grid-area: top-left; }
-.overlay_statements p:nth-child(2) { grid-area: top-right; }
-.overlay_statements p:nth-child(3) { grid-area: bottom; }
+.overlay_statements p:nth-child(1) {
+    grid-area: top-left;
+}
+.overlay_statements p:nth-child(2) {
+    grid-area: top-right;
+}
+.overlay_statements p:nth-child(3) {
+    grid-area: bottom;
+}
 
 /* Make overlay text smaller on small screens */
 @media (max-width: 900px) {
-    .overlay_statements { font-size: 1.05rem; padding: 1rem; gap: 0.6rem; }
-    #center_area { flex-direction: column-reverse; }
-    #settings_column { width: 100%; max-width: none; }
-    .overlay_statements { grid-template-columns: 1fr; grid-template-areas: "top-left" "top-right" "bottom"; }
-    .overlay_statements p { max-width: 85vw; }
+    .overlay_statements {
+        font-size: 1.05rem;
+        padding: 1rem;
+        gap: 0.6rem;
+    }
+    #center_area {
+        flex-direction: column-reverse;
+    }
+    #settings_column {
+        width: 100%;
+        max-width: none;
+    }
+    .overlay_statements {
+        grid-template-columns: 1fr;
+        grid-template-areas: "top-left" "top-right" "bottom";
+    }
+    .overlay_statements p {
+        max-width: 85vw;
+    }
 }
 
 
@@ -235,8 +271,12 @@ summary#settings_summary {
     background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
 }
 /* hide the browser default marker for this summary and use a left-side caret */
-summary#settings_summary::-webkit-details-marker { display: none; }
-summary#settings_summary::marker { display: none; }
+summary#settings_summary::-webkit-details-marker {
+    display: none;
+}
+summary#settings_summary::marker {
+    display: none;
+}
 
 summary#settings_summary::before {
     /* use a right-pointing triangle so it rotates down like the native category marker */
@@ -327,7 +367,9 @@ details[open] > summary#settings_summary::before {
     font-weight: 600;
 }
 
-details { overflow: visible; }
+details {
+    overflow: visible;
+}
 .slider {
     -webkit-appearance: none;
     appearance: none;
@@ -389,8 +431,12 @@ summary.categoryHeader { /* summary elements created in setup_sliders.ts */
     gap: 0.6rem;
 }
 
-summary.categoryHeader::-webkit-details-marker { display: none; }
-summary.categoryHeader::marker { display: none; }
+summary.categoryHeader::-webkit-details-marker {
+    display: none;
+}
+summary.categoryHeader::marker {
+    display: none;
+}
 
 summary.categoryHeader::before {
     content: '\25B6'; /* ▶ */
@@ -406,11 +452,11 @@ details[open] > summary.categoryHeader::before {
 }
 .categoryBody {
     padding: 0.6rem;
-     display: grid;
-     /* allow items to wrap into multiple columns but be able to shrink
-         reduce the minimum size so more items can fit per row inside
-         the narrow settings column */
-     grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    display: grid;
+    /* allow items to wrap into multiple columns but be able to shrink
+        reduce the minimum size so more items can fit per row inside
+        the narrow settings column */
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
     gap: 0.5rem;
     align-items: start;
 }
@@ -436,16 +482,38 @@ details[open] > summary.categoryHeader::before {
     overflow: visible;
     border: 2px solid rgba(120,220,255,0.24);
 }
-.rangeHolder * { box-sizing: border-box; }
-.rangeHolder { max-width: 100%; }
+.rangeHolder * {
+    box-sizing: border-box;
+}
+.rangeHolder {
+    max-width: 100%;
+}
 
-.rangeHolder .sliderKey { display: block; width: 100%; }
-.rangeHolder input.slider { width: 100%; max-width: 100%; }
-.rangeHolder input[type="checkbox"] { max-width: none; }
-.checkbox_toggle_label { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
-.rangeHolder * { box-sizing: border-box; }
-.rangeHolder { max-width: 100%; }
-.rangeHolder:hover { opacity: 1; }
+.rangeHolder .sliderKey {
+    display: block;
+    width: 100%;
+}
+.rangeHolder input.slider {
+    width: 100%;
+    max-width: 100%;
+}
+.rangeHolder input[type="checkbox"] {
+    max-width: none;
+}
+.checkbox_toggle_label {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.rangeHolder * {
+    box-sizing: border-box;
+}
+.rangeHolder {
+    max-width: 100%;
+}
+.rangeHolder:hover {
+    opacity: 1;
+}
 
 /* Constrain boid canvas into a centered container */
 #boid_container {
@@ -459,7 +527,11 @@ details[open] > summary.categoryHeader::before {
     box-shadow: 0 6px 30px rgba(0,0,0,0.6);
     position: relative;
 }
-#boid_container canvas { width: 100%; height: 100%; display: block; }
+#boid_container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
 
 /* Disable popout: force slideContainer to render inline under the summary
    and remove animations/absolute positioning that caused off-screen layout. */
