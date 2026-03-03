@@ -115,9 +115,11 @@ canvas {
 }
 
 #settings_column {
-    width: 320px;
-    max-width: 40vw;
-    height: 75vh;
+    /* slightly smaller per user's preference */
+    width: 400px;
+    min-width: 280px;
+    max-width: 50vw;
+    height: 80vh;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -232,10 +234,23 @@ summary#settings_summary {
     border: 1px solid rgba(255,255,255,0.03);
     background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
 }
-summary#settings_summary::after {
-    content: '\25BE'; /* down caret */
+/* hide the browser default marker for this summary and use a left-side caret */
+summary#settings_summary::-webkit-details-marker { display: none; }
+summary#settings_summary::marker { display: none; }
+
+summary#settings_summary::before {
+    /* use a right-pointing triangle so it rotates down like the native category marker */
+    content: '\25B6'; /* ▶ */
     display: inline-block;
+    margin-right: 0.6rem;
     transform-origin: center;
+    transition: transform .12s ease;
+    font-size: 0.95em;
+}
+
+/* rotate 90deg when open so the triangle points down to match categories */
+details[open] > summary#settings_summary::before {
+    transform: rotate(90deg);
 }
 
 /* https://www.w3schools.com/howto/howto_js_rangeslider.asp */
@@ -368,9 +383,11 @@ details { overflow: visible; }
 }
 .categoryBody {
     padding: 0.6rem;
-    display: grid;
-    /* allow items to wrap into multiple columns but be able to shrink */
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+     display: grid;
+     /* allow items to wrap into multiple columns but be able to shrink
+         reduce the minimum size so more items can fit per row inside
+         the narrow settings column */
+     grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
     gap: 0.5rem;
     align-items: start;
 }
@@ -378,7 +395,7 @@ details { overflow: visible; }
 .rangeHolder {
     background: linear-gradient(180deg, #151515, #040404);
 
-    width: 100%;
+    width: auto;
 
     justify-self: stretch;
 
