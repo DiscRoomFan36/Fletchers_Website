@@ -381,6 +381,29 @@ details { overflow: visible; }
     background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
     color: lightgoldenrodyellow;
 }
+
+/* Give category headers the same caret + rotate animation as the settings summary */
+summary.categoryHeader { /* summary elements created in setup_sliders.ts */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+summary.categoryHeader::-webkit-details-marker { display: none; }
+summary.categoryHeader::marker { display: none; }
+
+summary.categoryHeader::before {
+    content: '\25B6'; /* ▶ */
+    display: inline-block;
+    margin-right: 0.6rem;
+    transform-origin: center;
+    transition: transform .12s ease;
+    font-size: 0.95em;
+}
+
+details[open] > summary.categoryHeader::before {
+    transform: rotate(90deg);
+}
 .categoryBody {
     padding: 0.6rem;
      display: grid;
