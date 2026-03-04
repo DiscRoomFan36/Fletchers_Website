@@ -126,9 +126,10 @@ function render_boids(display: Display, go: Go_Functions) {
     const collidable_rectangles = get_all_collidable_rects();
 
     // make sure the rectangles are in canvas space.
+    const canvas_bounds = display.render_ctx.canvas.getBoundingClientRect();
     for (const rect of collidable_rectangles) {
-        rect.x -= display.render_ctx.canvas.getBoundingClientRect().x;
-        rect.y -= display.render_ctx.canvas.getBoundingClientRect().y;
+        rect.x -= canvas_bounds.x;
+        rect.y -= canvas_bounds.y;
     }
 
 
@@ -166,7 +167,7 @@ function render_boids(display: Display, go: Go_Functions) {
         display.back_buffer_render_ctx = back_ctx;
         display.back_buffer_render_ctx.imageSmoothingEnabled = false;
 
-        display.back_buffer_image_width = boid_canvas_width;
+        display.back_buffer_image_width  = boid_canvas_width;
         display.back_buffer_image_height = boid_canvas_height;
     }
 
