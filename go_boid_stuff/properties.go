@@ -91,6 +91,7 @@ type Properties struct {
     Draw_Rectangles     bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Mouse_Position bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Boid_Pathing   bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Rays           bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
 }
 
 

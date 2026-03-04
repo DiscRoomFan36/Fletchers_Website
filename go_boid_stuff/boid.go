@@ -545,6 +545,8 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
     // ------------------------------------
     for i := range boid_sim.Boids {
         boid := &boid_sim.Boids[i]
+        // all the action happens in this function, so all
+        // the pathing code is in one place in this file.
         boid_sim.do_pathing_for_boid(boid);
     }
 
