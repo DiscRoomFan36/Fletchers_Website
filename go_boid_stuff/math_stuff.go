@@ -1,7 +1,7 @@
-package main;
+package main
 
 import (
-	"math";
+	"math"
 )
 
 // TODO just make it float32? i like the generics, but it might be a bit much.
@@ -163,6 +163,15 @@ func fix_rectangle_so_that_width_and_height_are_positive(r Rectangle) Rectangle 
 
 type Line struct {
     x1, y1, x2, y2 Boid_Float;
+}
+
+func from_vecs[T Number](_a, _b Vec2[T]) Line {
+    a := Transform[T, Boid_Float](_a);
+    b := Transform[T, Boid_Float](_b);
+    return Line{
+        x1: a.x, y1: a.y,
+        x2: b.x, y2: b.y,
+    };
 }
 
 func (line Line) to_vec() (Vec2[Boid_Float], Vec2[Boid_Float]) {

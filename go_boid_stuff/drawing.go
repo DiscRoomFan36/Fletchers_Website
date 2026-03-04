@@ -179,6 +179,39 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             point_radius := boid_sim.get_how_close_you_need_to_be_before_you_switch_paths();
             Draw_Ring(img, point.x, point.y, point_radius, point_radius+3, rgb(228, 87, 87));
         }
+
+        if boid_sim.properties.Draw_Rays {
+            // @Copypasta a lot of this is just the real code
+            // in the 'boid_sim.do_one_tick()' function
+            ray_results := boid_sim.get_ray_results_for_boid_by_colliding_with_every_wall(b);
+
+            combined_ray := Vec2[Boid_Float]{};
+
+            for _, ray_result := range ray_results {
+                end := ray_result.end_point;
+
+                new_force := Sub(ray_result.hit_point, end);
+                new_force.Mult(boid_sim.properties.Visual_Range - Sqrt(ray_result.dist_sqr));
+
+                combined_ray.Add(new_force);
+
+                ray_as_line := from_vecs(b.Position, ray_result.end_point);
+                ray_as_line = Scale(ray_as_line, SCALE_FACTOR);
+                ray_result.hit_point.Mult(SCALE_FACTOR);
+
+                Draw_Line_l(img, ray_as_line, rgba(245, 130, 22, 0.5));
+                Draw_Circle_v(img, ray_result.hit_point, 5, rgba(20, 228, 228, 0.5));
+            }
+
+            combined_ray.Mult(1 / Boid_Float(boid_sim.properties.Num_Boid_Rays));
+
+            combined_ray.Add(b.Position)
+            combined_ray.Mult(SCALE_FACTOR)
+
+            Draw_Line(img, Mult(b.Position, SCALE_FACTOR), combined_ray, rgba(165, 33, 143, 1))
+            Draw_Circle_v(img, combined_ray, 5, rgba(235, 41, 41, 1))
+        }
+
     }
 
     { // dead boid explosions
@@ -548,58 +581,6 @@ func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, inp
 //                 Code Grave Yard
 ///////////////////////////////////////////////////////////
 
-
-
-////////////////////////////////////////////////////////
-//                 Debug Boid Vision
-////////////////////////////////////////////////////////
-// this is kinda Copypasta from the real code.
-/*
-// draw the boid rays, not all of them though
-for i := range min(len(boid_sim.Boids), 10) {
-    boid := boid_sim.Boids[i]
-    rays := boid_sim.get_boid_rays(boid)
-
-    combined_ray := Vec2[Boid_Float]{}
-
-    for _, ray := range rays {
-        dist_sqr, pos := boid_sim.ray_collide_against_all_lines_and_find_smallest(ray)
-
-        // should be zero when it sees nothing, otherwise provides a push in the other direction.
-        new_force := Sub(pos, Vec2[Boid_Float]{ray.x2, ray.y2})
-        new_force.Mult(boid_sim.props.Visual_Range - Sqrt(dist_sqr))
-
-        combined_ray.Add(new_force)
-
-        ray = Scale(ray, scale_factor)
-        pos.Mult(scale_factor)
-
-        Draw_Line_l(img, ray, rgba(245, 130, 22, 0.5))
-
-        Draw_Circle_v(img, pos, 5, rgba(20, 228, 228, 0.5))
-    }
-
-    combined_ray.Mult(1 / Boid_Float(boid_sim.props.Num_Boid_Rays))
-
-    combined_ray.Add(boid.Position)
-    combined_ray.Mult(scale_factor)
-
-    Draw_Line(img, Mult(boid.Position, scale_factor), combined_ray, rgba(165, 33, 143, 1))
-    Draw_Circle_v(img, combined_ray, 5, rgba(235, 41, 41, 1))
-}
-*/
-
-
-// { // debug mouse pos
-// 	color := Color_Yellow()
-// 	if mouse_state == Left_down { color = Color_Red() }
-
-// 	Draw_Rect(
-// 		img,
-// 		mouse_pos.X, mouse_pos.Y, 10, 10,
-// 		color,
-// 	)
-// }
 
 // -----------------------------------------
 //   Code for testing Color interpolation.
