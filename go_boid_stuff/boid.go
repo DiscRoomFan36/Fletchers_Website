@@ -15,10 +15,28 @@ const CLICK_FADE_TIME = 1;
 type Boid_Float float32;
 
 // one single boid.
+//
+// this is probably going to become a fat struct, don't worry
+// about cache for this, the slow thing is the spacial array anyway.
 type Boid struct {
     Position Vec2[Boid_Float];
     Velocity Vec2[Boid_Float];
     Acceleration Vec2[Boid_Float];
+
+    pathing_info Boid_Pathing_Info;
+}
+
+type Boid_Pathing_Info struct {
+    // this array will be shared by many boids, so don't mess with its internals.
+    path_to_follow []Vec2[Boid_Float];
+    index_in_path int;
+
+    // this could be a property, or maybe it should be an
+    // array with the path... think about this later.
+    // how_close_to_point_before_next Boid_Float;
+
+    // this is something the thing that keeps track of and distributes the path's uses.
+    path_key int;
 }
 
 type Position_And_Time struct {
@@ -37,6 +55,11 @@ type Dead_Boid_Info struct {
 }
 
 type Boid_simulation struct {
+    // all the settable properties, may contain stuff not
+    // directly related to the boid simulation
+    properties Properties;
+
+
     Boids []Boid;
 
     // were all bad boids go when they die, we use this for a
@@ -80,9 +103,12 @@ type Boid_simulation struct {
     // should this be a float64 since its about time?
     spawn_timer Boid_Float;
 
-    // all the settable properties, may contain stuff not
-    // directly related to the boid simulation
-    properties Properties;
+
+    pathing struct {
+        inited bool;
+
+        path_backing_array []Vec2[Boid_Float];
+    };
 }
 
 func New_boid_simulation(width, height Boid_Float) Boid_simulation {
@@ -211,6 +237,8 @@ const ONE_TICK_DT = 1.0 / 60;
 // function stood on its own. only thing it needs from user input is left
 // down drawing boids towards the cursor.
 func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
+
+    boid_sim.per_tick_pathing_update();
 
     { // spawn / de-spawn boids.
         // want time things to be consistent, but the only time
@@ -472,7 +500,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
 
 
     // ------------------------------------
-    //            Boid Vision
+    //       Boid Vision / Raycasting
     // ------------------------------------
     //
     // works by shooting rays that collide against everything in the scene
@@ -484,7 +512,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
     // Also this Sloppy_Equal is to stop this from running if the factor is zero,
     // might apply this to other things as well, but this feels like it
     // could maybe make a difference here
-    if !Sloppy_Equal(boid_sim.properties.Boid_Vision_Factor, 0) || boid_sim.properties.Num_Boid_Rays == 0 {
+    if !Sloppy_Equal(boid_sim.properties.Boid_Ray_Force_Factor, 0) || boid_sim.properties.Num_Boid_Rays == 0 {
 
         for i := range len(boid_sim.Boids) {
             boid := boid_sim.Boids[i];
@@ -506,24 +534,27 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
             // reduce the total forces by the number of rays.
             combined_ray.Mult(1 / Boid_Float(boid_sim.properties.Num_Boid_Rays));
 
-            combined_ray.Mult(boid_sim.properties.Boid_Vision_Factor);
+            combined_ray.Mult(boid_sim.properties.Boid_Ray_Force_Factor);
 
             boid_sim.Boids[i].Acceleration.Add(combined_ray);
         }
     }
 
+    // ------------------------------------
+    //              Pathing
+    // ------------------------------------
+    for i := range boid_sim.Boids {
+        boid := &boid_sim.Boids[i]
+        boid_sim.do_pathing_for_boid(boid);
+    }
 
-    // ------------------------------------
-    //              Other Ideas
-    // ------------------------------------
-    // TODO add noise instead
-    // const WOBBLE_FACTOR = 0.01
-    // wobble := Mult(Random_unit_vector[T](), WOBBLE_FACTOR)
 
 
     // ----------------------------
     //       And Finally Drag
     // ----------------------------
+    //
+    // maybe we should put this in move and collide?
     for i := range len(boid_sim.Boids) {
         v0 := boid_sim.Boids[i].Velocity;
         a := boid_sim.Boids[i].Acceleration;
@@ -850,13 +881,16 @@ func bounce_1d[T Number](x, r, v, w T) T {
     return 2*w - (x + r + v) - r;
 }
 
+/////////////////////////////////////////////////////////////////////
+//                      Raycasting
+/////////////////////////////////////////////////////////////////////
 
 const MAX_RAYS = 32;
 var static_rays_storage [MAX_RAYS]Line;
 
 func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line {
     num_rays    := boid_sim.properties.Num_Boid_Rays;
-    cone_radius := boid_sim.properties.Visual_Cone_Radius;
+    cone_radius := boid_sim.properties.Visual_Cone_Angle;
 
     if num_rays > MAX_RAYS { panic("Why are there this many rays"); }
     result := static_rays_storage[:num_rays];
@@ -1012,4 +1046,84 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
 
 
     return result;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////
+//                               Pathing
+////////////////////////////////////////////////////////////////////////////
+
+// this is called before any boids can set their path for the frame.
+func (boid_sim *Boid_simulation) per_tick_pathing_update() {
+    if !boid_sim.pathing.inited {
+        boid_sim.pathing.inited = true;
+        boid_sim.pathing.path_backing_array = make([]Vec2[Boid_Float], 4);
+    }
+
+    // for now the path is just around the outside.
+    const PADDING = 50;
+    boid_sim.pathing.path_backing_array[0] = Vec2[Boid_Float]{                 PADDING,                   PADDING};
+    boid_sim.pathing.path_backing_array[1] = Vec2[Boid_Float]{boid_sim.Width - PADDING,                   PADDING};
+    boid_sim.pathing.path_backing_array[2] = Vec2[Boid_Float]{boid_sim.Width - PADDING, boid_sim.Height - PADDING};
+    boid_sim.pathing.path_backing_array[3] = Vec2[Boid_Float]{                 PADDING, boid_sim.Height - PADDING};
+}
+
+// i also have to use this in drawing code, and its a bit long, don't you think?
+func (boid_sim *Boid_simulation) get_how_close_you_need_to_be_before_you_switch_paths() Boid_Float {
+    return boid_sim.properties.Pathing_How_Close_To_Switch_In_Proportion_To_Boid_Visual_Range * boid_sim.properties.Visual_Range;
+}
+
+func (boid_sim *Boid_simulation) do_pathing_for_boid(boid *Boid) {
+    boid_sim.maybe_get_next_path_for_boid(boid);
+
+    // go to the next point.
+    point := boid.pathing_info.path_to_follow[boid.pathing_info.index_in_path];
+    // TODO check if we hit the point up here.
+
+    direction := Normalized(Sub(point, boid.Position));
+
+    boid.Acceleration.Add( Mult(direction, boid_sim.properties.Pathing_Force) );
+
+    // Move to the next point if we have arrived.
+    //
+    // i know the boid hasn't moved yet, however this will only be
+    // at most 1 tick out of date, not worth worrying about.
+    how_close := boid_sim.get_how_close_you_need_to_be_before_you_switch_paths();
+    if DistSqr(boid.Position, point) <= Square(how_close) {
+        boid.pathing_info.index_in_path += 1;
+
+        boid_sim.maybe_get_next_path_for_boid(boid);
+    }
+}
+
+//
+// accepts an entire boid so it can take into account
+// the position and maybe other things later.
+//
+func (boid_sim *Boid_simulation) maybe_get_next_path_for_boid(boid *Boid) {
+    if boid.pathing_info.index_in_path < len(boid.pathing_info.path_to_follow) {
+        return; // no need to get next path.
+    }
+
+    if !boid_sim.pathing.inited { panic("Pathing is not inited yet..."); }
+
+    if boid.pathing_info.index_in_path != len(boid.pathing_info.path_to_follow) {
+        panic("The boid wasn't done with the path yet.");
+    }
+
+    // if its zero, that means they haven't been on a path before,
+    if boid.pathing_info.path_key == 0 {
+        boid.pathing_info.path_to_follow = boid_sim.pathing.path_backing_array;
+        boid.pathing_info.index_in_path  = rand_n(len(boid.pathing_info.path_to_follow));
+        boid.pathing_info.path_key = 1;
+
+    } else {
+        boid.pathing_info.path_to_follow = boid_sim.pathing.path_backing_array;
+        boid.pathing_info.index_in_path  = 0;
+    }
+
+    if len(boid.pathing_info.path_to_follow) <= boid.pathing_info.index_in_path {
+        panic("don't leave this function without a path to follow");
+    }
 }

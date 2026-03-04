@@ -119,6 +119,7 @@ func rand_f32() float32 { return rand.Float32(); }
 // The random number generator function. [0, 1)
 func rand_f64() float64 { return rand.Float64(); }
 
+// [0, n), (not including n)
 func rand_n(n int) int { return rand.Intn(n); }
 
 
