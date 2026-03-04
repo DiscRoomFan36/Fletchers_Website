@@ -543,8 +543,8 @@ func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, inp
     time_base := PI * 2 * BOX_BOB_SPEED * t;
 
     // +1 and +2 here to get the ones that are offscreen as well.
-    height_to_check := Div_Ceil(img.Height, BOX_HEIGHT) + 2;
-    width_to_check  := Div_Ceil(img.Width , BOX_WIDTH ) + 1;
+    height_to_check := min(Div_Ceil(img.Height, BOX_HEIGHT) + 2, NUM_BOX_HIGH);
+    width_to_check  := min(Div_Ceil(img.Width , BOX_WIDTH ) + 1, NUM_BOX_WIDE);
 
     for j := range height_to_check {
         for i := range width_to_check {
