@@ -31,6 +31,7 @@ type Properties struct {
     // how many spawn / de-spawn per second.
     Boid_Spawn_Rate    Boid_Float `Property:"float" Range:"10;1000" Default:"100" Category:"Boid_Spawning"`;
 
+    // for sep, align and coh
     Visual_Range            Boid_Float `Property:"float" Range:"1;25" Default:"15" Category:"Normal_Boid_Parameters"`;
     Separation_Min_Distance Boid_Float `Property:"float" Range:"0;20" Default:"8.5" Category:"Normal_Boid_Parameters"`;
 
@@ -50,10 +51,11 @@ type Properties struct {
     Mouse_Draw_Factor Boid_Float `Property:"float" Range:"1;20" Default:"2"`;
 
     // Boid Vision
-    Num_Boid_Rays      int        `Property:"int" Range:"1;10" Default:"5" Category:"Vision"`;
-    // in radians
-    Visual_Cone_Radius Boid_Float `Property:"float" Range:"0;360" Default:"140" Category:"Vision"`;
-    Boid_Vision_Factor Boid_Float `Property:"float" Range:"0;5" Default:"1" Category:"Vision"`;
+    Num_Boid_Rays         int        `Property:"int" Range:"1;10" Default:"5" Category:"Vision_Rays"`;
+    // in degrees
+    Visual_Cone_Angle     Boid_Float `Property:"float" Range:"0;360" Default:"140" Category:"Vision_Rays"`;
+    // the boost the boid gets if it trys to hit a wall.
+    Boid_Ray_Force_Factor Boid_Float `Property:"float" Range:"0;5" Default:"1" Category:"Vision_Rays"`;
 
 
     Final_Acceleration_Boost Boid_Float `Property:"float" Range:"1;25" Default:"10" Category:"Physics"`; // 5
@@ -70,16 +72,25 @@ type Properties struct {
     Boid_Radius Boid_Float `Property:"float" Range:"0;10" Default:"2.5"`;
 
 
+    Pathing_Force       Boid_Float `Property:"float" Range:"1;20" Default:"2" Category:"Pathing"`;
+    // Variable names the Long way
+    Pathing_How_Close_To_Switch_In_Proportion_To_Boid_Visual_Range Boid_Float `Property:"float" Range:"0.1;10" Default:"3" Category:"Pathing"`;
+
+
     // TODO i would like the category to be "Debug Draw" (without the '_'),
     // but i parse the tags in a dumb way, maybe later.
     //
     // TODO extra spaces are also bad apparently...
+
+    Debug_Draw_How_Many_Boids int `Property:"int" Default:"10" Range:"1;1000" Category:"Debug_Draw"`
+
     Draw_Spacial_Array  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
-    Draw_Boundary       bool `Property:"bool" Default:"true" Category:"Debug_Draw"`;
+    Draw_Boundary       bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Heading        bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Visual_Ranges  bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Rectangles     bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
     Draw_Mouse_Position bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
+    Draw_Boid_Pathing   bool `Property:"bool" Default:"false" Category:"Debug_Draw"`;
 }
 
 

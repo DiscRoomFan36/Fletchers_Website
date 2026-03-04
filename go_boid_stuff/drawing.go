@@ -36,9 +36,11 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
     }
 
     if boid_sim.properties.Draw_Visual_Ranges {
+        how_many := min(len(boid_sim.Boids), boid_sim.properties.Debug_Draw_How_Many_Boids);
+
         // Draw visual radius.
         visual_radius_color := HSL_to_RGB(50, 0.7, 0.9);
-        for _, b := range boid_sim.Boids {
+        for _, b := range boid_sim.Boids[:how_many] {
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
             r := boid_sim.properties.Visual_Range * SCALE_FACTOR;
@@ -47,7 +49,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
 
         // Draw minimum visual radius. (for separation.)
         minimum_radius_color := HSL_to_RGB(270, 0.7, 0.7);
-        for _, b := range boid_sim.Boids {
+        for _, b := range boid_sim.Boids[:how_many] {
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
             r := boid_sim.properties.Separation_Min_Distance * SCALE_FACTOR;
@@ -116,8 +118,12 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         return boid_color;
     };
 
+    //
+    // Draw The Boids
+    //
     // NOTE i would put this in a go routine, but wasm doesn't do multithreading, fuck
-    for _, b := range boid_sim.Boids {
+    //
+    for b_index, b := range boid_sim.Boids {
         // put them in img space
         b.Position.Mult(SCALE_FACTOR);
 
@@ -146,10 +152,32 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[2], boid_color);
         Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[3], boid_color);
 
+
+        // debug draw stuff
+        if b_index >= boid_sim.properties.Debug_Draw_How_Many_Boids { continue; }
+
         if boid_sim.properties.Draw_Heading {
             // Draw heading line
             where_boid_will_be := Add(b.Position, b.Velocity);
             Draw_Line(img, b.Position, where_boid_will_be, rgba(43, 231, 26, 1));
+        }
+
+        if boid_sim.properties.Draw_Boid_Pathing {
+            if b.pathing_info.index_in_path >= len(b.pathing_info.path_to_follow) {
+                panic("boid must have a path at the end of the frame. for ease of use");
+            }
+
+            point := b.pathing_info.path_to_follow[b.pathing_info.index_in_path];
+            point.Mult(SCALE_FACTOR); // put into canvas space.
+
+            // draw a line from the boid to the position its tying to reach.
+            Draw_Line(img, b.Position, point, boid_color);
+            // a lot of overlap here probably.
+
+            // this ring is roughly accurate... but it seems a little off?
+            // its close enough that nobody will notice.
+            point_radius := boid_sim.get_how_close_you_need_to_be_before_you_switch_paths();
+            Draw_Ring(img, point.x, point.y, point_radius, point_radius+3, rgb(228, 87, 87));
         }
     }
 
