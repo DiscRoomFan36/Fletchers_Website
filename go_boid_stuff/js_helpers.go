@@ -82,12 +82,12 @@ func parse_js_value_to_type_helper(js_value js.Value, reflected_type reflect.Val
                 {
                     j := 0;
                     for _, struct_key := range struct_keys {
-                        for js_object_keys[j] < struct_key {
+                        for j < len(js_object_keys) && js_object_keys[j] < struct_key {
                             Append(&extra_keys, js_object_keys[j]);
                             j += 1;
                         }
 
-                        if struct_key == js_object_keys[j] {
+                        if j < len(js_object_keys) && struct_key == js_object_keys[j] {
                             j += 1;
                             continue;
                         } else {

@@ -8,25 +8,68 @@ import (
 	"time"
 )
 
-var img Image;
 
 var boid_sim Boid_simulation;
-var user_input_this_frame User_Input;
 
-var last_frame_time time.Time;
+const BOID_DIMENSION_FACTOR = 50;
+const BOID_BOUNDS_WIDTH  = 16 * BOID_DIMENSION_FACTOR;
+const BOID_BOUNDS_HEIGHT =  9 * BOID_DIMENSION_FACTOR;
 
-const BOID_FACTOR = 50;
-const BOID_BOUNDS_WIDTH  = 16 * BOID_FACTOR;
-const BOID_BOUNDS_HEIGHT =  9 * BOID_FACTOR;
 
+func main() {
+    println("Hello From Boid.go");
+
+    // always prints 1. :(
+    // println("num cpu's", runtime.NumCPU())
+
+    // set img to screen size, and shrink
+    drawing_context.image = New_image(1920, 1080);
+    boid_sim = New_boid_simulation(BOID_BOUNDS_WIDTH, BOID_BOUNDS_HEIGHT);
+
+    last_frame_time = time.Now();
+
+    // this gets and sets information between javascript and go
+    js.Global().Set("Initialize_Js_And_Go_Connection", js.FuncOf(Initialize_Js_And_Go_Connection));
+    // allows javascript to set the properties we gave it in GetProperties.
+    js.Global().Set("SetProperties", js.FuncOf(SetProperties));
+    // the main loop. gets called every frame.
+    js.Global().Set("GetNextFrame",  js.FuncOf(GetNextFrame));
+
+    // TODO get some javascript functions for faster drawing...
+    // functions := parse_js_value_to_type[map[string]js.Func]()
+
+    // something like this to do faster drawing.
+    // js.Global().Call("draw_triangles", tries)
+
+    // this stalls the go program, because go has a 'run time' that needs to
+    // be aware of everything. bleh
+    <-make(chan struct{});
+}
+
+
+type Things_Provided_By_Js_Struct struct {
+
+    // function to print a string. just for testing.
+    log_string_function js.Value;
+};
+
+// GetProperties must be called first, because it also gives us some functions.
+var get_properties_was_called = false;
 
 // Javascript function
 //
 // Uses reflection to dynamically get the properties of the simulation
-func GetProperties(this js.Value, args []js.Value) any {
-    if len(args) != 0 {
-        log.Panicf("GetProperties: don't pass anything to this function");
+func Initialize_Js_And_Go_Connection(this js.Value, args []js.Value) any {
+    get_properties_was_called = true;
+
+    if len(args) != 1 {
+        log.Panicf("GetProperties: expects one argument to grab some ");
     }
+
+    things_provided_by_js, err := parse_js_value_to_type[Things_Provided_By_Js_Struct](args[0]);
+    if err != nil { log.Panicf("GetProperties: cannot get argument map: %v", err); }
+
+    things_provided_by_js.log_string_function.Invoke("hello from go!");
 
     property_structs := Get_property_structs();
     if len(property_structs) == 0 { panic("GetProperties: Get_property_structs did not return any structs?") }
@@ -37,10 +80,13 @@ func GetProperties(this js.Value, args []js.Value) any {
     return properties_to_any;
 }
 
+
 // Javascript function
 //
 // Uses reflection to dynamically set the properties of the simulation
 func SetProperties(this js.Value, args []js.Value) any {
+    if !get_properties_was_called { panic("GetProperties should be the first function you call."); }
+
     if len(args) != 1 {
         log.Panicf("SetProperties: please pass in a object with properties to set");
     }
@@ -78,10 +124,17 @@ func SetProperties(this js.Value, args []js.Value) any {
 
 
 
+
+var user_input_this_frame User_Input;
+var last_frame_time time.Time;
+
+
 // Javascript function
 //
 // Will pass back a bunch of pixels, (though array), in [RGBA] format
 func GetNextFrame(this js.Value, args []js.Value) any {
+    if !get_properties_was_called { panic("GetProperties should be the first function you call."); }
+
     if len(args) != 1 {
         log.Panicf("GetNextFrame: got incorrect number of arguments, wanted 1, got %v", len(args));
     }
@@ -126,7 +179,7 @@ func GetNextFrame(this js.Value, args []js.Value) any {
         next_frame_args.mouse.pos,
     );
 
-    img.Resize_Image(next_frame_args.width, next_frame_args.height);
+    drawing_context.image.Resize_Image(next_frame_args.width, next_frame_args.height);
 
     // TODO theres a bug here if you full screen a window...
 
@@ -151,36 +204,9 @@ func GetNextFrame(this js.Value, args []js.Value) any {
     boid_sim.Update_boids(dt, user_input_this_frame);
 
     // this might end up taking the most amount of time.
-    Draw_Everything(&img, &boid_sim, dt, user_input_this_frame);
+    Draw_Everything(&boid_sim, dt, user_input_this_frame);
 
     // copy the pixels, must be in RGBA format
-    copied_bytes := js.CopyBytesToJS(next_frame_args.buffer, img.To_RGBA_byte_array());
+    copied_bytes := js.CopyBytesToJS(next_frame_args.buffer, drawing_context.image.To_RGBA_byte_array());
     return copied_bytes;
-}
-
-func main() {
-    println("Hello From Boid.go");
-
-    // always prints 1. :(
-    // println("num cpu's", runtime.NumCPU())
-
-    // set img to screen size, and shrink
-    img = New_image(1920, 1080);
-    boid_sim = New_boid_simulation(BOID_BOUNDS_WIDTH, BOID_BOUNDS_HEIGHT);
-
-    last_frame_time = time.Now();
-
-    js.Global().Set("GetProperties", js.FuncOf(GetProperties));
-    js.Global().Set("SetProperties", js.FuncOf(SetProperties));
-    js.Global().Set("GetNextFrame",  js.FuncOf(GetNextFrame));
-
-    // TODO get some javascript functions for faster drawing...
-    // functions := parse_js_value_to_type[map[string]js.Func]()
-
-    // something like this to do faster drawing.
-    // js.Global().Call("draw_triangles", tries)
-
-    // this stalls the go program, because go has a 'run time' that needs to
-    // be aware of everything. bleh
-    <-make(chan struct{});
 }
