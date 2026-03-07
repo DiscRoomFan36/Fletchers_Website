@@ -12,11 +12,11 @@ const SCALE_FACTOR = 1 / BOID_SCALE;
 // TODO have some sort of view mode here, so we can 'move' the 'camera'
 //
 // go incorrectly reports this function as unused if it is not public...
-func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input User_Input) {
-    Draw_Cool_Background(img, boid_sim, dt, input);
+func Draw_Everything(boid_sim *Boid_simulation, dt float64, input User_Input) {
+    Draw_Cool_Background(boid_sim, dt, input);
 
     if boid_sim.properties.Draw_Spacial_Array {
-        draw_spacial_array_into_image(img, boid_sim.Spacial_array, SCALE_FACTOR);
+        draw_spacial_array_into_image(boid_sim.Spacial_array, SCALE_FACTOR);
     }
 
     if boid_sim.properties.Draw_Boundary && boid_sim.properties.Toggle_Bounding {
@@ -24,14 +24,14 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
 
         margin := int(boid_sim.properties.Margin * SCALE_FACTOR);
         boundary_points := [4]Vec2[int]{
-            {x: margin,             y: margin},
-            {x: img.Width - margin, y: margin},
-            {x: img.Width - margin, y: img.Height - margin},
-            {x: margin,             y: img.Height - margin},
+            {x: margin,                               y: margin},
+            {x: drawing_context.image.Width - margin, y: margin},
+            {x: drawing_context.image.Width - margin, y: drawing_context.image.Height - margin},
+            {x: margin,                               y: drawing_context.image.Height - margin},
         };
 
         for i := range len(boundary_points) {
-            Draw_Line(img, boundary_points[i], boundary_points[(i+1)%len(boundary_points)], boid_boundary_color);
+            Draw_Line(boundary_points[i], boundary_points[(i+1)%len(boundary_points)], boid_boundary_color);
         }
     }
 
@@ -44,7 +44,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
             r := boid_sim.properties.Visual_Range * SCALE_FACTOR;
-            Draw_Circle(img, x, y, r, visual_radius_color);
+            Draw_Circle(x, y, r, visual_radius_color);
         }
 
         // Draw minimum visual radius. (for separation.)
@@ -53,7 +53,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             x := b.Position.x * SCALE_FACTOR;
             y := b.Position.y * SCALE_FACTOR;
             r := boid_sim.properties.Separation_Min_Distance * SCALE_FACTOR;
-            Draw_Circle(img, x, y, r, minimum_radius_color);
+            Draw_Circle(x, y, r, minimum_radius_color);
         }
     }
 
@@ -74,7 +74,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             }
 
             for i := range len(boundary_points) {
-                Draw_Line(img, boundary_points[i], boundary_points[(i+1)%len(boundary_points)], rgb(240, 14, 14));
+                Draw_Line(boundary_points[i], boundary_points[(i+1)%len(boundary_points)], rgb(240, 14, 14));
             }
         }
     }
@@ -84,7 +84,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             p1, p2 := line.to_vec();
             p1.Mult(SCALE_FACTOR);
             p2.Mult(SCALE_FACTOR);
-            Draw_Line(img, p1, p2, rgb(240, 14, 14));
+            Draw_Line(p1, p2, rgb(240, 14, 14));
         }
     }
 
@@ -96,12 +96,12 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         t := Get_Time_Repeating();
         added := 2 * math.Pi * Boid_Float(t) * NUM_ROTATIONS_PER_SECOND;
 
-        Draw_Triangles_Circling(img, p1, 8, 20, added, rgba(30, 236, 202, 1));
-        Draw_Triangles_Circling(img, p2, 8, 20, added, rgba(30, 236, 202, 1));
+        Draw_Triangles_Circling(p1, 8, 20, added, rgba(30, 236, 202, 1));
+        Draw_Triangles_Circling(p2, 8, 20, added, rgba(30, 236, 202, 1));
 
         color := rgb(236, 236, 10);
         if input.Middle.Held { color = rgb(10, 245, 10); }
-        Draw_Line(img, p1, p2, color);
+        Draw_Line(p1, p2, color);
     }
 
 
@@ -149,8 +149,8 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         boid_color := get_boid_color(b);
 
         // Draw both sides
-        Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[2], boid_color);
-        Draw_Triangle(img, boid_shape[0], boid_shape[1], boid_shape[3], boid_color);
+        Draw_Triangle(boid_shape[0], boid_shape[1], boid_shape[2], boid_color);
+        Draw_Triangle(boid_shape[0], boid_shape[1], boid_shape[3], boid_color);
 
 
         // debug draw stuff
@@ -159,7 +159,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
         if boid_sim.properties.Draw_Heading {
             // Draw heading line
             where_boid_will_be := Add(b.Position, b.Velocity);
-            Draw_Line(img, b.Position, where_boid_will_be, rgba(43, 231, 26, 1));
+            Draw_Line(b.Position, where_boid_will_be, rgba(43, 231, 26, 1));
         }
 
         if boid_sim.properties.Draw_Boid_Pathing {
@@ -171,13 +171,13 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             point.Mult(SCALE_FACTOR); // put into canvas space.
 
             // draw a line from the boid to the position its tying to reach.
-            Draw_Line(img, b.Position, point, boid_color);
+            Draw_Line(b.Position, point, boid_color);
             // a lot of overlap here probably.
 
             // this ring is roughly accurate... but it seems a little off?
             // its close enough that nobody will notice.
             point_radius := boid_sim.get_how_close_you_need_to_be_before_you_switch_paths();
-            Draw_Ring(img, point.x, point.y, point_radius, point_radius+3, rgb(228, 87, 87));
+            Draw_Ring(point.x, point.y, point_radius, point_radius+3, rgb(228, 87, 87));
         }
 
         if boid_sim.properties.Draw_Rays {
@@ -199,8 +199,8 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
                 ray_as_line = Scale(ray_as_line, SCALE_FACTOR);
                 ray_result.hit_point.Mult(SCALE_FACTOR);
 
-                Draw_Line_l(img, ray_as_line, rgba(245, 130, 22, 0.5));
-                Draw_Circle_v(img, ray_result.hit_point, 5, rgba(20, 228, 228, 0.5));
+                Draw_Line_l(ray_as_line, rgba(245, 130, 22, 0.5));
+                Draw_Circle_v(ray_result.hit_point, 5, rgba(20, 228, 228, 0.5));
             }
 
             combined_ray.Mult(1 / Boid_Float(boid_sim.properties.Num_Boid_Rays));
@@ -208,8 +208,8 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             combined_ray.Add(b.Position)
             combined_ray.Mult(SCALE_FACTOR)
 
-            Draw_Line(img, Mult(b.Position, SCALE_FACTOR), combined_ray, rgba(165, 33, 143, 1))
-            Draw_Circle_v(img, combined_ray, 5, rgba(235, 41, 41, 1))
+            Draw_Line(Mult(b.Position, SCALE_FACTOR), combined_ray, rgba(165, 33, 143, 1))
+            Draw_Circle_v(combined_ray, 5, rgba(235, 41, 41, 1))
         }
 
     }
@@ -265,7 +265,7 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
             // drawing these circles is slow. we are also blending them into the image.
             //
             // the need for js rendering grows every day.
-            Draw_Circle_v(img, drawing_position, Boid_Float(radius), color);
+            Draw_Circle_v(drawing_position, Boid_Float(radius), color);
         }
     }
 
@@ -288,7 +288,6 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
 
         size_factor := Boid_Float(ease_out_quint(percent));
         Draw_Ring(
-            img,
             pos.x, pos.y,
             size_factor*SIZE, size_factor*SIZE+RING_WIDTH,
             color,
@@ -301,13 +300,11 @@ func Draw_Everything(img *Image, boid_sim *Boid_simulation, dt float64, input Us
     	const LEN = 10
 
     	Draw_Line(
-    		img,
     		Add(center, Vec2[Boid_Float]{0, -LEN}),
     		Add(center, Vec2[Boid_Float]{0,  LEN}),
     		rgba(76, 114, 240, 1),
     	)
     	Draw_Line(
-    		img,
     		Add(center, Vec2[Boid_Float]{-LEN, 0}),
     		Add(center, Vec2[Boid_Float]{ LEN, 0}),
     		rgba(76, 114, 240, 1),
@@ -369,7 +366,7 @@ func ease_in_out_quint[T Float](x T) T {
 }
 
 
-func draw_spacial_array_into_image[T Number](img *Image, sp_array Spacial_Array[T], scale T) {
+func draw_spacial_array_into_image[T Number](sp_array Spacial_Array[T], scale T) {
 
     min_x, min_y := sp_array.Min_x, sp_array.Min_y;
     max_x, max_y := sp_array.Max_x, sp_array.Max_y;
@@ -392,7 +389,6 @@ func draw_spacial_array_into_image[T Number](img *Image, sp_array Spacial_Array[
 
         for i := range len(bounding_box) {
             Draw_Line(
-                img,
                 bounding_box[i],
                 bounding_box[(i+1)%len(bounding_box)],
                 rgb(223, 223, 223),
@@ -413,7 +409,7 @@ func draw_spacial_array_into_image[T Number](img *Image, sp_array Spacial_Array[
             p1.Mult(scale);
             p2.Mult(scale);
 
-            Draw_Line(img, p1, p2, inner_color);
+            Draw_Line(p1, p2, inner_color);
         }
 
         // Horizontal
@@ -426,7 +422,7 @@ func draw_spacial_array_into_image[T Number](img *Image, sp_array Spacial_Array[
             p1.Mult(scale);
             p2.Mult(scale);
 
-            Draw_Line(img, p1, p2, inner_color);
+            Draw_Line(p1, p2, inner_color);
         }
     }
 
@@ -454,7 +450,7 @@ func draw_spacial_array_into_image[T Number](img *Image, sp_array Spacial_Array[
                 // fade alpha based on how many points are in it.
                 faded_color := HSL_to_RGB(blended, 0.9, 0.5);
 
-                Draw_Rect(img, x*scale, y*scale, step_x*scale, step_y*scale, faded_color);
+                Draw_Rect(x*scale, y*scale, step_x*scale, step_y*scale, faded_color);
             }
         }
     }
@@ -532,19 +528,19 @@ func get_y_offset(t float64) int {
 }
 
 
-func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, input User_Input) {
+func Draw_Cool_Background(boid_sim *Boid_simulation, dt float64, input User_Input) {
     // this call is super slow.
     //
     // who knew that writing to over a million pixels would be so slow?
-    img.Clear_background(rgb(29, 29, 29));
+    Clear_background(rgb(29, 29, 29));
 
 
     t := Get_Time_Repeating();
     time_base := PI * 2 * BOX_BOB_SPEED * t;
 
     // +1 and +2 here to get the ones that are offscreen as well.
-    height_to_check := min(Div_Ceil(img.Height, BOX_HEIGHT) + 2, NUM_BOX_HIGH);
-    width_to_check  := min(Div_Ceil(img.Width , BOX_WIDTH ) + 1, NUM_BOX_WIDE);
+    height_to_check := min(Div_Ceil(drawing_context.image.Height, BOX_HEIGHT) + 2, NUM_BOX_HIGH);
+    width_to_check  := min(Div_Ceil(drawing_context.image.Width , BOX_WIDTH ) + 1, NUM_BOX_WIDE);
 
     for j := range height_to_check {
         for i := range width_to_check {
@@ -564,7 +560,6 @@ func Draw_Cool_Background(img *Image, boid_sim *Boid_simulation, dt float64, inp
             // amount of these things, and each of them calls
             // 'draw_rect_no_blend' 4 times.
             Draw_Rect_Outline(
-                img,
                 x + BOX_MARGIN, y + BOX_MARGIN,
                 w - BOX_MARGIN*2, h - BOX_MARGIN*2,
                 BOX_INNER_PAD,

@@ -69,6 +69,30 @@ func HSL_to_RGB[T Float](H, S, L T) Color {
     return rgba_to_color(r, g, b, 255);
 }
 
+// returned alpha is c1.a
+func blend_color(c1, c2 Color) Color {
+    _r1, _g1, _b1, _a1 := c1.to_rgba();
+    _r2, _g2, _b2, _a2 := c2.to_rgba();
+
+    // has to be converted into a bigger int type,
+    // because theres not enough precision with the uint8's
+    //
+    // uint for speed? maybe? so the compiler dosnt have to do dumb int things.
+    r1, g1, b1, a1 := uint(_r1), uint(_g1), uint(_b1), uint(_a1);
+    r2, g2, b2, a2 := uint(_r2), uint(_g2), uint(_b2), uint(_a2);
+
+    r3 := (r1*(255 - a2) + r2*a2)/255;
+    g3 := (g1*(255 - a2) + g2*a2)/255;
+    b3 := (b1*(255 - a2) + b2*a2)/255;
+
+    r3 = min(r3, 255);
+    g3 = min(g3, 255);
+    b3 = min(b3, 255);
+
+    return rgba_to_color(uint8(r3), uint8(g3), uint8(b3), uint8(a1));
+}
+
+
 
 type Image struct {
     Buffer []Color; // [RGBA][RGBA][RGBA]...
@@ -139,28 +163,6 @@ func (img *Image) put_color_no_blend(x, y int, c Color) {
     img.Buffer[y*img.Width + x] = c;
 }
 
-// returned alpha is c1.a
-func blend_color(c1, c2 Color) Color {
-    _r1, _g1, _b1, _a1 := c1.to_rgba();
-    _r2, _g2, _b2, _a2 := c2.to_rgba();
-
-    // has to be converted into a bigger int type,
-    // because theres not enough precision with the uint8's
-    //
-    // uint for speed? maybe? so the compiler dosnt have to do dumb int things.
-    r1, g1, b1, a1 := uint(_r1), uint(_g1), uint(_b1), uint(_a1);
-    r2, g2, b2, a2 := uint(_r2), uint(_g2), uint(_b2), uint(_a2);
-
-    r3 := (r1*(255 - a2) + r2*a2)/255;
-    g3 := (g1*(255 - a2) + g2*a2)/255;
-    b3 := (b1*(255 - a2) + b2*a2)/255;
-
-    r3 = min(r3, 255);
-    g3 = min(g3, 255);
-    b3 = min(b3, 255);
-
-    return rgba_to_color(uint8(r3), uint8(g3), uint8(b3), uint8(a1));
-}
 
 func (img *Image) put_color(x, y int, c Color) {
     // this could be slightly faster,
@@ -177,6 +179,17 @@ func (img *Image) put_color(x, y int, c Color) {
 }
 
 
+// I have realized that this project only uses one image.
+// so im just gonna use a global variable to store all
+// the image state, will also make it easier to switch
+// to a different renderer. (aka js rendering.)
+type Drawing_Context struct {
+    image Image;
+};
+
+var drawing_context Drawing_Context;
+
+
 // this function has noinline, because its gonna be super slow anyway,
 // (it has to write to 1,000,000 pixels at least), and makes the performance
 // graph make more sense.
@@ -185,42 +198,43 @@ func (img *Image) put_color(x, y int, c Color) {
 // but the wasm backend has disappointed me before.
 //
 //go:noinline
-func (img *Image) Clear_background(c Color) {
-    for i := range img.Width*img.Height {
-        img.Buffer[i] = c;
+func Clear_background(c Color) {
+    width, height := drawing_context.image.Width, drawing_context.image.Height;
+    for i := range width*height {
+        drawing_context.image.Buffer[i] = c;
     }
 }
 
 // i wish go had macros or something so i didn't have to make this function twice.
-func Draw_Rect_int(img *Image, x, y, w, h int, c Color) {
-    min_i, max_i := max(x, 0), min(x+w, img.Width);
-    min_j, max_j := max(y, 0), min(y+h, img.Height);
+func Draw_Rect_int(x, y, w, h int, c Color) {
+    min_i, max_i := max(x, 0), min(x+w, drawing_context.image.Width);
+    min_j, max_j := max(y, 0), min(y+h, drawing_context.image.Height);
     for j := min_j; j < max_j; j++ {
         for i := min_i; i < max_i; i++ {
-            img.put_color(i, j, c);
+            drawing_context.image.put_color(i, j, c);
         }
     }
 }
-func Draw_Rect_int_no_blend(img *Image, x, y, w, h int, c Color) {
-    min_i, max_i := max(x, 0), min(x+w, img.Width);
-    min_j, max_j := max(y, 0), min(y+h, img.Height);
+func Draw_Rect_int_no_blend(x, y, w, h int, c Color) {
+    min_i, max_i := max(x, 0), min(x+w, drawing_context.image.Width);
+    min_j, max_j := max(y, 0), min(y+h, drawing_context.image.Height);
     for j := min_j; j < max_j; j++ {
         for i := min_i; i < max_i; i++ {
-            img.put_color_no_blend(i, j, c);
+            drawing_context.image.put_color_no_blend(i, j, c);
         }
     }
 }
 
-func Draw_Rect[T Number](img *Image, x, y, w, h T, c Color) {
+func Draw_Rect[T Number](x, y, w, h T, c Color) {
     _x := Round(x);
     _y := Round(y);
     _w := Round(w);
     _h := Round(h);
 
-    Draw_Rect_int(img, _x, _y, _w, _h, c);
+    Draw_Rect_int(_x, _y, _w, _h, c);
 }
 
-func Draw_Rect_Outline[T Number](img *Image, _x, _y, _w, _h T, _inner_padding T, color Color) {
+func Draw_Rect_Outline[T Number](_x, _y, _w, _h T, _inner_padding T, color Color) {
     x := Round(_x);
     y := Round(_y);
     w := Round(_w);
@@ -228,41 +242,44 @@ func Draw_Rect_Outline[T Number](img *Image, _x, _y, _w, _h T, _inner_padding T,
     inner_padding := Round(_inner_padding);
 
     // do bounds out here for speed.
-    if (x + w <= 0) || (y + h <= 0) || (x >= img.Width) || (y >= img.Height) { return; }
+    if (x + w <= 0) ||
+       (y + h <= 0) ||
+       (x >= drawing_context.image.Width) ||
+       (y >= drawing_context.image.Height) { return; }
 
-    Draw_Rect_int_no_blend(img, x,                 y,                 w,             inner_padding,     color); // top edge
-    Draw_Rect_int_no_blend(img, x,                 y+h-inner_padding, w,             inner_padding,     color); // bottom edge
-    Draw_Rect_int_no_blend(img, x,                 y+inner_padding,   inner_padding, h-inner_padding*2, color); // left edge
-    Draw_Rect_int_no_blend(img, x+w-inner_padding, y+inner_padding,   inner_padding, h-inner_padding*2, color); // right edge
+    Draw_Rect_int_no_blend(x,                 y,                 w,             inner_padding,     color); // top edge
+    Draw_Rect_int_no_blend(x,                 y+h-inner_padding, w,             inner_padding,     color); // bottom edge
+    Draw_Rect_int_no_blend(x,                 y+inner_padding,   inner_padding, h-inner_padding*2, color); // left edge
+    Draw_Rect_int_no_blend(x+w-inner_padding, y+inner_padding,   inner_padding, h-inner_padding*2, color); // right edge
 }
 
-func Draw_Circle[T Number](img *Image, x, y, r T, c Color) {
+func Draw_Circle[T Number](x, y, r T, c Color) {
     min_x := max(Floor(x-r-1), 0);
-    max_x := min(Ceil( x+r+1), img.Width);
+    max_x := min(Ceil( x+r+1), drawing_context.image.Width);
     min_y := max(Floor(y-r-1), 0);
-    max_y := min(Ceil( y+r+1), img.Height);
+    max_y := min(Ceil( y+r+1), drawing_context.image.Height);
 
     for j := min_y; j < max_y; j++ {
         for i := min_x; i < max_x; i++ {
             a := T(i) - x;
             b := T(j) - y;
             if a*a+b*b < r*r {
-                img.put_color(i, j, c);
+                drawing_context.image.put_color(i, j, c);
             }
         }
     }
 }
-func Draw_Circle_v[T Number](img *Image, p Vec2[T], r T, c Color) { Draw_Circle(img, p.x, p.y, r, c); }
+func Draw_Circle_v[T Number](p Vec2[T], r T, c Color) { Draw_Circle(p.x, p.y, r, c); }
 
 
 
-func Draw_Ring[T Number](img *Image, x, y, r1, r2 T, c Color) {
+func Draw_Ring[T Number](x, y, r1, r2 T, c Color) {
     if !(r1 <= r2) { panic("r1 is less than r2"); }
 
     min_x := max(Floor(x-r2-1), 0);
-    max_x := min(Ceil( x+r2+1), img.Width);
+    max_x := min(Ceil( x+r2+1), drawing_context.image.Width);
     min_y := max(Floor(y-r2-1), 0);
-    max_y := min(Ceil( y+r2+1), img.Height);
+    max_y := min(Ceil( y+r2+1), drawing_context.image.Height);
 
     for j := min_y; j < max_y; j++ {
         for i := min_x; i < max_x; i++ {
@@ -274,7 +291,7 @@ func Draw_Ring[T Number](img *Image, x, y, r1, r2 T, c Color) {
             //
             // this function if looping though a lot of inner pixels...
             if (r1*r1 < d) && (d < r2*r2) {
-                img.put_color(i, j, c);
+                drawing_context.image.put_color(i, j, c);
             }
         }
     }
@@ -282,7 +299,7 @@ func Draw_Ring[T Number](img *Image, x, y, r1, r2 T, c Color) {
 
 
 // DDA line generation algorithm
-func Draw_Line[T Number](img *Image, _p1, _p2 Vec2[T], c Color) {
+func Draw_Line[T Number](_p1, _p2 Vec2[T], c Color) {
     // convert to int. image library should be friendly
     p1 := Transform[T, int](_p1);
     p2 := Transform[T, int](_p2);
@@ -295,12 +312,12 @@ func Draw_Line[T Number](img *Image, _p1, _p2 Vec2[T], c Color) {
 
     // check if its straight up down.
     if dx == 0 {
-        if !(0 <= p1.x && p1.x < img.Width) { return; }
+        if !(0 <= p1.x && p1.x < drawing_context.image.Width) { return; }
         // draw up down line
         y1 := min(p1.y, p2.y);
         y2 := max(p1.y, p2.y);
-        for y := max(y1, 0); y < min(y2, img.Height); y++ {
-            img.put_color(p1.x, y, c);
+        for y := max(y1, 0); y < min(y2, drawing_context.image.Height); y++ {
+            drawing_context.image.put_color(p1.x, y, c);
         }
         return;
     }
@@ -316,19 +333,21 @@ func Draw_Line[T Number](img *Image, _p1, _p2 Vec2[T], c Color) {
         X_r := Round(X);
         Y_r := Round(Y);
 
-        if img.point_within_bounds(X_r, Y_r) { img.put_color(X_r, Y_r, c); }
+        if drawing_context.image.point_within_bounds(X_r, Y_r) {
+            drawing_context.image.put_color(X_r, Y_r, c);
+        }
 
         X += X_inc;
         Y += Y_inc;
     }
 }
-func Draw_Line_l(img *Image, line Line, color Color) {
+func Draw_Line_l(line Line, color Color) {
     p1, p2 := line.to_vec();
-    Draw_Line(img, p1, p2, color);
+    Draw_Line(p1, p2, color);
 }
 
 // https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
-func Draw_Triangle[T Number](img *Image, p1, p2, p3 Vec2[T], color Color) {
+func Draw_Triangle[T Number](p1, p2, p3 Vec2[T], color Color) {
     v1 := Transform[T, int](p1);
     v2 := Transform[T, int](p2);
     v3 := Transform[T, int](p3);
@@ -341,11 +360,11 @@ func Draw_Triangle[T Number](img *Image, p1, p2, p3 Vec2[T], color Color) {
     if v1.y > v2.y { v1, v2 = v2, v1; }
 
     draw_line := func(x0, x1, y int) {
-        if !(0 <= y && y < img.Height) { return; }
+        if !(0 <= y && y < drawing_context.image.Height) { return; }
         min_x := max(min(x0, x1), 0);
-        max_x := min(max(x0, x1), img.Width);
+        max_x := min(max(x0, x1), drawing_context.image.Width);
         for x := min_x; x < max_x; x++ {
-            img.put_color(x, y, color);
+            drawing_context.image.put_color(x, y, color);
         }
     }
     fillBottomFlatTriangle := func(v1, v2, v3 Vec2[int]) {
@@ -393,7 +412,7 @@ func Draw_Triangle[T Number](img *Image, p1, p2, p3 Vec2[T], color Color) {
     }
 }
 
-func Draw_Triangles_Circling[T Number](img *Image, pos Vec2[T], num_segments int, size, added_rotation T, color Color) {
+func Draw_Triangles_Circling[T Number](pos Vec2[T], num_segments int, size, added_rotation T, color Color) {
     num_points_around_the_circle := num_segments * 2;
     for i := range num_segments {
         around_1 := 2 * math.Pi / float64(num_points_around_the_circle) * (float64(i) * 2);
@@ -411,6 +430,6 @@ func Draw_Triangles_Circling[T Number](img *Image, pos Vec2[T], num_segments int
         p3 := Add(pos, p1, p2);
         p3.x /= 3; p3.y /= 3;
 
-        Draw_Triangle(img, p1, p2, p3, color);
+        Draw_Triangle(p1, p2, p3, color);
     }
 }

@@ -21,10 +21,15 @@ interface Get_Next_Frame_Arguments {
     rectangles: Rect[];
 };
 
+interface Functions_To_Provide {
+    log_string_function: (s: string) => void;
+}
+
 // NOTE we *CAN* change these names, the 'get_go_functions()' handles the real names
 interface Go_Functions {
     set_properties: (obj:Object) => number;
-    get_properties: () => Object;
+    // TODO rename this?
+    Initialize_Js_And_Go_Connection: (functions_to_provide: Functions_To_Provide) => Object;
 
     get_next_frame: (args: Get_Next_Frame_Arguments) => number;
 };
@@ -42,7 +47,7 @@ async function get_go_functions(): Promise<Go_Functions> {
         // @ts-ignore
         set_properties: SetProperties,
         // @ts-ignore
-        get_properties: GetProperties,
+        Initialize_Js_And_Go_Connection: Initialize_Js_And_Go_Connection,
 
         // @ts-ignore
         get_next_frame: GetNextFrame,
@@ -259,8 +264,13 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     const go = await get_go_functions();
 
+    const functions_to_provide: Functions_To_Provide = {
+        log_string_function: (s) => { console.log("log_string:", s); },
+    };
+    const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide)
+
     { // Handle slider stuff
-        const boid_properties = Object.entries(go.get_properties());
+        const boid_properties = Object.entries(go_properties_as_an_object);
         if (boid_properties.length === 0) throw new Error("No properties where given to javascript!");
 
         function set_property(name: string, value: number|boolean) {
@@ -336,8 +346,10 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         back_buffer_image_height: back_buffer_image_height,
     };
 
-    let prev_timestamp = 0;
+    let prev_timestamp: number | undefined;
     const frame = (timestamp: number) => {
+        if (prev_timestamp === undefined) { prev_timestamp = timestamp; }
+
         const boidContainer = document.getElementById("boid_container");
         if (boidContainer === null)    throw new Error("No element with id `boid_container` is found");
 
@@ -361,8 +373,5 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         window.requestAnimationFrame(frame);
     };
 
-    window.requestAnimationFrame((timestamp) => {
-        prev_timestamp = timestamp
-        window.requestAnimationFrame(frame)
-    });
+    window.requestAnimationFrame(frame);
 })();
