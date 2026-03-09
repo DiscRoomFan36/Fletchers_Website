@@ -51,6 +51,21 @@ type Things_Provided_By_Js_Struct struct {
 
     // function to print a string. just for testing.
     log_string_function js.Value;
+
+    // drawing functions.
+
+    // clear_background:  (c: Boid_Color) => void;
+    clear_background    js.Value;
+    // draw_rectangle:    (x: number, y: number, w: number, h: number, c: Boid_Color) => void;
+    draw_rectangle      js.Value;
+    // draw_circle:       (x: number, y: number, r: number, c: Boid_Color) => void;
+    draw_circle         js.Value;
+    // draw_triangle:     (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: Boid_Color) => void;
+    draw_triangle       js.Value;
+    // draw_line:         (x1: number, y1: number, x2: number, y2: number, c: Boid_Color) => void;
+    draw_line           js.Value;
+    // draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
+    draw_single_pixel   js.Value;
 };
 
 // GetProperties must be called first, because it also gives us some functions.
@@ -69,7 +84,17 @@ func Initialize_Js_And_Go_Connection(this js.Value, args []js.Value) any {
     things_provided_by_js, err := parse_js_value_to_type[Things_Provided_By_Js_Struct](args[0]);
     if err != nil { log.Panicf("GetProperties: cannot get argument map: %v", err); }
 
-    things_provided_by_js.log_string_function.Invoke("hello from go!");
+    things_provided_by_js.log_string_function.Invoke("Using the log_string_function, hello from go! ");
+
+    drawing_context.js = Js_Functions{
+        clear_background:  things_provided_by_js.clear_background,
+        draw_rectangle:    things_provided_by_js.draw_rectangle,
+        draw_circle:       things_provided_by_js.draw_circle,
+        draw_triangle:     things_provided_by_js.draw_triangle,
+        draw_line:         things_provided_by_js.draw_line,
+        draw_single_pixel: things_provided_by_js.draw_single_pixel,
+    };
+    drawing_context.js_functions_exist = true;
 
     property_structs := Get_property_structs();
     if len(property_structs) == 0 { panic("GetProperties: Get_property_structs did not return any structs?") }

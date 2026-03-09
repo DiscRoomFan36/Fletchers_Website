@@ -21,8 +21,27 @@ interface Get_Next_Frame_Arguments {
     rectangles: Rect[];
 };
 
+// this is a u32 in go, but we have to use number in js,
+// so we just have to be careful with it.
+type Boid_Color = number;
+function Boid_Color_To_Rgb(color: Boid_Color): string {
+    const r = (color >> (8*0)) & 0xFF;
+    const g = (color >> (8*1)) & 0xFF;
+    const b = (color >> (8*2)) & 0xFF;
+    const a = (color >> (8*3)) & 0xFF;
+
+    return `rgb(${r}, ${g}, ${b}, ${a / 255})`;
+}
+
 interface Functions_To_Provide {
     log_string_function: (s: string) => void;
+
+    clear_background:  (c: Boid_Color) => void;
+    draw_rectangle:    (x: number, y: number, w: number, h: number, c: Boid_Color) => void;
+    draw_circle:       (x: number, y: number, r: number, c: Boid_Color) => void;
+    draw_triangle:     (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: Boid_Color) => void;
+    draw_line:         (x1: number, y1: number, x2: number, y2: number, c: Boid_Color) => void;
+    draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
 }
 
 // NOTE we *CAN* change these names, the 'get_go_functions()' handles the real names
@@ -259,33 +278,10 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 //            The Main Function
 //////////////////////////////////////////////////
 
-(async () => {
+async function main() {
     if (IN_DEV_MODE) console.log("In Dev Mode");
 
     const go = await get_go_functions();
-
-    const functions_to_provide: Functions_To_Provide = {
-        log_string_function: (s) => { console.log("log_string:", s); },
-    };
-    const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide)
-
-    { // Handle slider stuff
-        const boid_properties = Object.entries(go_properties_as_an_object);
-        if (boid_properties.length === 0) throw new Error("No properties where given to javascript!");
-
-        function set_property(name: string, value: number|boolean) {
-            // https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript
-            const obj: Record<string,number|boolean> = {};
-            obj[name] = value;
-
-            go.set_properties(obj);
-        };
-
-        // TODO maybe make this dev mode only...
-        // it also has to remove the Settings thing...
-        setup_sliders(boid_properties, set_property);
-    }
-
 
     { // setup input handling.
         // why doesn't typescript have an enum for this?
@@ -318,9 +314,10 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
     }
 
 
+    const BOID_CANVAS_ID = "boid_canvas";
     // const canvas_container = document.getElementById("canvas_div") as HTMLCanvasElement | null
-    const boid_canvas = document.getElementById("boid_canvas") as HTMLCanvasElement | null;
-    if (boid_canvas === null)    throw new Error("No canvas with id `boid_canvas` is found");
+    const boid_canvas = document.getElementById(BOID_CANVAS_ID) as HTMLCanvasElement | null;
+    if (boid_canvas === null)    throw new Error(`No canvas with id "${BOID_CANVAS_ID}" is found`);
 
     // TODO naming better, use snake case everywhere!!
     const boid_canvas_render_ctx = boid_canvas.getContext("2d");
@@ -336,6 +333,7 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
 
     const back_buffer_array = new Uint8ClampedArray(back_buffer_image_width * back_buffer_image_height * 4);
 
+
     const display: Display = {
         render_ctx: boid_canvas_render_ctx,
         back_buffer_render_ctx: back_buffer_render_ctx,
@@ -345,6 +343,36 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
         back_buffer_image_width: back_buffer_image_width,
         back_buffer_image_height: back_buffer_image_height,
     };
+
+
+    const functions_to_provide: Functions_To_Provide = {
+        log_string_function: (s) => { console.log("log_string:", s); },
+
+        clear_background:  (c) =>                         { throw new Error("clear_background: Not Implemented."); },
+        draw_rectangle:    (x, y, w, h, c) =>             { throw new Error("draw_rectangle: Not Implemented."); },
+        draw_circle:       (x, y, r, c) =>                { throw new Error("draw_circle: Not Implemented."); },
+        draw_triangle:     (x1, y1, x2, y2, x3, y3, c) => { throw new Error("draw_triangle: Not Implemented."); },
+        draw_line:         (x1, y1, x2, y2, c) =>         { throw new Error("draw_line: Not Implemented."); },
+        draw_single_pixel: (x, y, c) =>                   { throw new Error("draw_single_pixel: Not Implemented."); }
+    };
+    const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide)
+
+    { // Handle slider stuff
+        const boid_properties = Object.entries(go_properties_as_an_object);
+        if (boid_properties.length === 0) throw new Error("No properties where given to javascript!");
+
+        function set_property(name: string, value: number|boolean) {
+            // https://stackoverflow.com/questions/12710905/how-do-i-dynamically-assign-properties-to-an-object-in-typescript
+            const obj: Record<string,number|boolean> = {};
+            obj[name] = value;
+
+            go.set_properties(obj);
+        };
+
+        // TODO maybe make this dev mode only...
+        // it also has to remove the Settings thing...
+        setup_sliders(boid_properties, set_property);
+    }
 
     let prev_timestamp: number | undefined;
     const frame = (timestamp: number) => {
@@ -374,4 +402,7 @@ function render_debug_info(display: Display, new_render_time: number, new_delta_
     };
 
     window.requestAnimationFrame(frame);
-})();
+}
+
+// start the whole thing.
+main();
