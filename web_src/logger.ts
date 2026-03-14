@@ -5,7 +5,7 @@
 export const DEBUG_DISPLAY = true;
 export const DEBUG_SLIDERS = false;
 
-export enum Log_Type {
+export const enum Log_Type {
     General,
 
     Debug_Display,
