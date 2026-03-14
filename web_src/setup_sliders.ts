@@ -25,7 +25,7 @@ class Property_Struct {
     category:           string = DEFAULT_CATEGORY;
 };
 
-enum Property_Data_Type {
+const enum Property_Data_Type {
     None,
     Property_Data_Float,
     Property_Data_Int,
