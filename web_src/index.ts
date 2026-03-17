@@ -2,7 +2,8 @@
 // typescript glue code.
 
 import { Log_Type, log, DEBUG_DISPLAY } from "./logger";
-import { setup_global_properties, setup_sliders, get_property_struct_by_name } from "./setup_sliders";
+import { setup_sliders } from "./setup_sliders";
+import { setup_global_properties, get_property_struct_by_name } from "./properties.js";
 
 // cool trick
 const IN_DEV_MODE = (window.location.hostname === "localhost");
@@ -149,7 +150,7 @@ function render_boids(display: Display, go: Go_Functions) {
     //
     // i think all functions are queued in javascript, so any actions
     // take place either before this function is called, or after.
-    const render_method = get_property_struct_by_name("Render_Method").as_bool() ? Render_Method.Js : Render_Method.Software;
+    const render_method = get_property_struct_by_name("Render_Method").get_bool() ? Render_Method.Js : Render_Method.Software;
 
 
     // we get the bounding rectangles of elements in the document,
@@ -454,14 +455,10 @@ async function main() {
             go.set_properties(obj);
         };
 
-        // maybe this should accept set_property(), would allow the
-        // property structs to set themselves, (getter and setter
-        // style), but then again this only happens once...
-        // so its not that important.
-        setup_global_properties(boid_properties);
+        setup_global_properties(boid_properties, set_property);
         // TODO maybe make this dev mode only...
         // it also has to remove the Settings thing...
-        setup_sliders(set_property);
+        setup_sliders();
     }
 
     let prev_timestamp: number | undefined;
