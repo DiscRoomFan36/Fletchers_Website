@@ -41,6 +41,11 @@ func Pop[T any](slice *[]T) T {
     return item;
 }
 
+func Contains[T comparable, U any](m map[T]U, key T) bool {
+    _, ok := m[key];
+    return ok;
+}
+
 
 // TODO this math stuff is dumb, "Don't needlessly abstract." - Some Smart Guy
 

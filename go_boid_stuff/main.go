@@ -9,7 +9,10 @@ import (
 )
 
 
+var all_the_properties Properties;
 var boid_sim Boid_simulation;
+// this is stored in the image file.
+// var drawing_context Drawing_Context;
 
 const BOID_DIMENSION_FACTOR = 50;
 const BOID_BOUNDS_WIDTH  = 16 * BOID_DIMENSION_FACTOR;
@@ -19,12 +22,18 @@ const BOID_BOUNDS_HEIGHT =  9 * BOID_DIMENSION_FACTOR;
 func main() {
     println("Hello From Boid.go");
 
+    all_the_properties = get_default_properties();
+
     // always prints 1. :(
     // println("num cpu's", runtime.NumCPU())
 
     // set img to screen size, and shrink
     drawing_context.image = New_image(1920, 1080);
     boid_sim = New_boid_simulation(BOID_BOUNDS_WIDTH, BOID_BOUNDS_HEIGHT);
+
+    // TODO this is super dumb.
+    boid_sim.properties        = &all_the_properties;
+    drawing_context.properties = &all_the_properties;
 
     last_frame_time = time.Now();
 
@@ -34,12 +43,6 @@ func main() {
     js.Global().Set("SetProperties", js.FuncOf(SetProperties));
     // the main loop. gets called every frame.
     js.Global().Set("GetNextFrame",  js.FuncOf(GetNextFrame));
-
-    // TODO get some javascript functions for faster drawing...
-    // functions := parse_js_value_to_type[map[string]js.Func]()
-
-    // something like this to do faster drawing.
-    // js.Global().Call("draw_triangles", tries)
 
     // this stalls the go program, because go has a 'run time' that needs to
     // be aware of everything. bleh
@@ -66,6 +69,9 @@ type Things_Provided_By_Js_Struct struct {
     draw_line           js.Value;
     // draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
     draw_single_pixel   js.Value;
+
+    // TODO draw_rectangle_border(), would speed up drawing the background,
+    // which is the slowest part currently.
 };
 
 // GetProperties must be called first, because it also gives us some functions.
@@ -96,7 +102,7 @@ func Initialize_Js_And_Go_Connection(this js.Value, args []js.Value) any {
     };
     drawing_context.js_functions_exist = true;
 
-    property_structs := Get_property_structs();
+    property_structs := get_property_structs();
     if len(property_structs) == 0 { panic("GetProperties: Get_property_structs did not return any structs?") }
 
     // We have to do this because js.FuncOf() expects this function to return a map to any. (aka a javascript object.)
@@ -121,7 +127,7 @@ func SetProperties(this js.Value, args []js.Value) any {
         log.Panicf("SetProperties: got error when parsing arguments: %v", err);
     }
 
-    property_structs := Get_property_structs();
+    property_structs := get_property_structs();
     things_to_set_map := make(map[string]Union_Like);
 
     for prop_name, js_value := range map_from_prop_to_js_value {
@@ -143,7 +149,7 @@ func SetProperties(this js.Value, args []js.Value) any {
         log.Panicf("SetProperties: Did not set any properties!!\n");
     }
 
-    boid_sim.Set_Properties_with_map(things_to_set_map);
+    set_properties_with_map(&all_the_properties, things_to_set_map);
     return len(things_to_set_map);
 }
 
@@ -168,7 +174,7 @@ func GetNextFrame(this js.Value, args []js.Value) any {
         // width and height that javascript wants us to draw into
         width, height int;
         // the buffer we will be drawing pixels onto,
-        buffer js.Value;
+        software_rendering_byte_buffer js.Value;
 
         // mouse status, we construct more useful things from this small amount of info.
         mouse struct {
@@ -231,7 +237,17 @@ func GetNextFrame(this js.Value, args []js.Value) any {
     // this might end up taking the most amount of time.
     Draw_Everything(&boid_sim, dt, user_input_this_frame);
 
-    // copy the pixels, must be in RGBA format
-    copied_bytes := js.CopyBytesToJS(next_frame_args.buffer, drawing_context.image.To_RGBA_byte_array());
-    return copied_bytes;
+
+    switch drawing_context.properties.Render_Method {
+        case RENDER_METHOD_SOFTWARE: {
+            // copy the pixels, must be in RGBA format
+            copied_bytes := js.CopyBytesToJS(next_frame_args.software_rendering_byte_buffer, drawing_context.image.To_RGBA_byte_array());
+            return copied_bytes;
+        }
+        case RENDER_METHOD_JS: {
+            // in js rendering, we already drew everything in Draw_Everything, so we don't need to copy the pixels to js.
+            return -1;
+        }
+    }
+    panic("UNREACHABLE");
 }
