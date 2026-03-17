@@ -57,7 +57,9 @@ type Dead_Boid_Info struct {
 type Boid_simulation struct {
     // all the settable properties, may contain stuff not
     // directly related to the boid simulation
-    properties Properties;
+    //
+    // pointer bc the drawing context also has some stuff it needs
+    properties *Properties;
 
 
     Boids []Boid;
@@ -138,8 +140,6 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
 
         spawn_timer: 0,
     };
-
-    set_boid_defaults(&boid_sim);
 
     for i := range NUM_RANDOM_GENERATORS {
         boid_sim.random_generators[i] = New_Random_Generator(true);

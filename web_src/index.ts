@@ -2,7 +2,7 @@
 // typescript glue code.
 
 import { Log_Type, log, DEBUG_DISPLAY } from "./logger";
-import { setup_sliders } from "./setup_sliders";
+import { setup_global_properties, setup_sliders, get_property_struct_by_name } from "./setup_sliders";
 
 // cool trick
 const IN_DEV_MODE = (window.location.hostname === "localhost");
@@ -13,7 +13,7 @@ const IN_DEV_MODE = (window.location.hostname === "localhost");
 interface Get_Next_Frame_Arguments {
     width:  number;
     height: number;
-    buffer: Uint8ClampedArray;
+    software_rendering_byte_buffer: Uint8ClampedArray;
 
     mouse: Mouse;
 
@@ -75,12 +75,13 @@ async function get_go_functions(): Promise<Go_Functions> {
 
 // Credit to rexim for the inspiration: https://github.com/tsoding/koil
 interface Display {
-    render_ctx: CanvasRenderingContext2D;
-    back_buffer_render_ctx: OffscreenCanvasRenderingContext2D;
+    render_ctx             : CanvasRenderingContext2D;
+    back_buffer_render_ctx : OffscreenCanvasRenderingContext2D;
 
     // imageData: ImageData
 
-    back_buffer_array        : Uint8ClampedArray;
+    // this is where the software rendered image comes from.
+    software_rendering_back_buffer_array : Uint8ClampedArray;
     back_buffer_image_width  : number;
     back_buffer_image_height : number;
 };
@@ -138,8 +139,21 @@ function get_all_collidable_rects(): Rect[] {
 };
 
 function render_boids(display: Display, go: Go_Functions) {
+
+    const enum Render_Method {
+        Software = 0,
+        Js       = 1,
+    };
+
+    // I sure hope I don't hit a race condition.
+    //
+    // i think all functions are queued in javascript, so any actions
+    // take place either before this function is called, or after.
+    const render_method = get_property_struct_by_name("Render_Method").as_bool() ? Render_Method.Js : Render_Method.Software;
+
+
     // we get the bounding rectangles of elements in the document,
-   //
+    //
     // we COULD have just rendered the text ourselves, (with .fillText())
     // but i want the user to be able to select the email text.
     //
@@ -170,16 +184,17 @@ function render_boids(display: Display, go: Go_Functions) {
 
     // [r, g, b, a], not necessarily in that order
     const NUM_COLOR_COMPONENTS = 4;
-    const buffer_size = boid_canvas_width * boid_canvas_height * NUM_COLOR_COMPONENTS;
+    const byte_buffer_size = boid_canvas_width * boid_canvas_height * NUM_COLOR_COMPONENTS;
 
     // resize back buffer if canvas size changed.
     if (display.back_buffer_image_width !== boid_canvas_width || display.back_buffer_image_height !== boid_canvas_height) {
         log(Log_Type.General, "Oh god. were resizing the buffer");
 
-        if (display.back_buffer_array.length < buffer_size) {
+        // TODO maybe don't do this is js rendering?
+        if (display.software_rendering_back_buffer_array.length < byte_buffer_size) {
             log(Log_Type.General, "Back buffer array getting bigger"); // my penis
             // make the buffer bigger
-            display.back_buffer_array = new Uint8ClampedArray(buffer_size);
+            display.software_rendering_back_buffer_array = new Uint8ClampedArray(byte_buffer_size);
         }
 
 
@@ -195,12 +210,12 @@ function render_boids(display: Display, go: Go_Functions) {
         display.back_buffer_image_height = boid_canvas_height;
     }
 
-    const buffer = display.back_buffer_array.subarray(0, buffer_size);
+    const software_rendering_byte_buffer = display.software_rendering_back_buffer_array.subarray(0, byte_buffer_size);
 
     const args: Get_Next_Frame_Arguments = {
         width: boid_canvas_width,
         height: boid_canvas_height,
-        buffer: buffer,
+        software_rendering_byte_buffer: software_rendering_byte_buffer,
 
         mouse: mouse,
 
@@ -209,24 +224,36 @@ function render_boids(display: Display, go: Go_Functions) {
 
     const num_bytes_filled = go.get_next_frame(args);
 
-    if (num_bytes_filled !== buffer_size)    throw new Error(`go.get_next_frame got incorrect number of bytes, wanted: ${buffer_size}, got: ${num_bytes_filled}`);
-
-    // @ts-ignore // why dose this line make an error in my editor
-    const image_data = new ImageData(buffer, boid_canvas_width, boid_canvas_height);
-
-    // is this cool?
     //
-    // the whole point of this back_buffer is to prevent flickering and
-    // stuff, buf if were only going to be drawing one thing...
-    // whats the point?
-    display.back_buffer_render_ctx.putImageData(image_data, 0, 0);
+    // load the back_buffer_render_ctx with the new image.
+    //
+    if (render_method === Render_Method.Software) {
+        // TODO is this just wasted time in js rendering mode?
+        if (num_bytes_filled !== byte_buffer_size)    throw new Error(`go.get_next_frame got incorrect number of bytes, wanted: ${byte_buffer_size}, got: ${num_bytes_filled}`);
 
-    // NOTE this will stretch the thing.
+        // @ts-ignore // why dose this line make an error in my editor
+        const image_data = new ImageData(software_rendering_byte_buffer, boid_canvas_width, boid_canvas_height);
+
+        // is this cool?
+        //
+        // the whole point of this back_buffer is to prevent flickering and
+        // stuff, buf if were only going to be drawing one thing...
+        // whats the point?
+        display.back_buffer_render_ctx.putImageData(image_data, 0, 0);
+    }
+
+    if (render_method === Render_Method.Js) {
+        // in js rendering, the back_buffer was already drawn into. maybe we don't need this switch case.
+        if (num_bytes_filled !== -1) throw new Error(`go.get_next_frame should return -1 in js rendering mode, got: ${num_bytes_filled}`);
+    }
+
+    // NOTE this will stretch the image in display.back_buffer_render_ctx.
+    //
     // canvas.width might change during the time this is running
     display.render_ctx.drawImage(display.back_buffer_render_ctx.canvas, 0, 0, display.render_ctx.canvas.width, display.render_ctx.canvas.height);
 
     // lets hope javascript is smart enough to deallocate this...
-    // imageData = null
+    // imageData = null;
 };
 
 
@@ -285,7 +312,7 @@ async function main() {
 
     { // setup input handling.
         // why doesn't typescript have an enum for this?
-        enum Mouse_Buttons {
+        const enum Mouse_Buttons {
             Left      = 0,
             Middle    = 1,
             Right     = 2,
@@ -338,26 +365,84 @@ async function main() {
         render_ctx: boid_canvas_render_ctx,
         back_buffer_render_ctx: back_buffer_render_ctx,
 
-        back_buffer_array: back_buffer_array,
+        software_rendering_back_buffer_array: back_buffer_array,
 
         back_buffer_image_width: back_buffer_image_width,
         back_buffer_image_height: back_buffer_image_height,
     };
 
+    function map_xy_to_canvas_space(x: number, y: number): [number, number] {
+        const squish_factor = display.back_buffer_render_ctx.canvas.width / display.back_buffer_image_width;
+        const real_x = x * squish_factor;
+        const real_y = y * squish_factor;
+        return [real_x, real_y];
+    }
+
 
     const functions_to_provide: Functions_To_Provide = {
         log_string_function: (s) => { console.log("log_string:", s); },
 
-        clear_background:  (c) =>                         { throw new Error("clear_background: Not Implemented."); },
-        draw_rectangle:    (x, y, w, h, c) =>             { throw new Error("draw_rectangle: Not Implemented."); },
-        draw_circle:       (x, y, r, c) =>                { throw new Error("draw_circle: Not Implemented."); },
-        draw_triangle:     (x1, y1, x2, y2, x3, y3, c) => { throw new Error("draw_triangle: Not Implemented."); },
-        draw_line:         (x1, y1, x2, y2, c) =>         { throw new Error("draw_line: Not Implemented."); },
-        draw_single_pixel: (x, y, c) =>                   { throw new Error("draw_single_pixel: Not Implemented."); }
+        clear_background:  (c) =>                         {
+            display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
+            display.back_buffer_render_ctx.fillRect(0, 0, display.back_buffer_render_ctx.canvas.width, display.back_buffer_render_ctx.canvas.height);
+        },
+        draw_rectangle:    (x, y, w, h, c) =>             {
+            // move it more into canvas space, TODO the right thing is back_buffer width or something.
+            // x /= 5; y /= 5; w /= 5; h /= 5;
+            [x, y] = map_xy_to_canvas_space(x, y);
+            [w, h] = map_xy_to_canvas_space(w, h);
+            display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
+            display.back_buffer_render_ctx.fillRect(x, y, w, h);
+        },
+        draw_circle:       (x, y, r, c) =>                {
+            var _: number; // bleh
+            [x, y] = map_xy_to_canvas_space(x, y);
+            [r, _] = map_xy_to_canvas_space(r, 0);
+
+            display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
+            display.back_buffer_render_ctx.ellipse(x, y, r, r, 0, 0, 0.5);
+        },
+        draw_triangle:     (x1, y1, x2, y2, x3, y3, c) => {
+            [x1, y1] = map_xy_to_canvas_space(x1, y1);
+            [x2, y2] = map_xy_to_canvas_space(x2, y2);
+            [x3, y3] = map_xy_to_canvas_space(x3, y3);
+
+            display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
+
+            // yuck.
+            display.back_buffer_render_ctx.beginPath();
+            display.back_buffer_render_ctx.moveTo(x1, y1);
+            display.back_buffer_render_ctx.lineTo(x2, y2);
+            display.back_buffer_render_ctx.lineTo(x3, y3);
+            display.back_buffer_render_ctx.closePath();
+            display.back_buffer_render_ctx.fill();
+        },
+        draw_line:         (x1, y1, x2, y2, c) =>         {
+            [x1, y1] = map_xy_to_canvas_space(x1, y1);
+            [x2, y2] = map_xy_to_canvas_space(x2, y2);
+
+            display.back_buffer_render_ctx.strokeStyle = Boid_Color_To_Rgb(c);
+
+            display.back_buffer_render_ctx.beginPath();
+            display.back_buffer_render_ctx.moveTo(x1, y1);
+            display.back_buffer_render_ctx.lineTo(x2, y2);
+            display.back_buffer_render_ctx.closePath();
+            display.back_buffer_render_ctx.stroke();
+        },
+        draw_single_pixel: (x, y, c) =>                   {
+            // console.log("draw_single_pixel: Not Implemented.");
+            // throw new Error("draw_single_pixel is not implemented, because it would be really slow, and i don't need it right now.");
+
+            [x, y] = map_xy_to_canvas_space(x, y);
+            display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
+            // hmm...
+            display.back_buffer_render_ctx.fillRect(x, y, 1, 1);
+        }
     };
     const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide)
 
-    { // Handle slider stuff
+    { // Handle property stuff
+
         const boid_properties = Object.entries(go_properties_as_an_object);
         if (boid_properties.length === 0) throw new Error("No properties where given to javascript!");
 
@@ -369,9 +454,14 @@ async function main() {
             go.set_properties(obj);
         };
 
+        // maybe this should accept set_property(), would allow the
+        // property structs to set themselves, (getter and setter
+        // style), but then again this only happens once...
+        // so its not that important.
+        setup_global_properties(boid_properties);
         // TODO maybe make this dev mode only...
         // it also has to remove the Settings thing...
-        setup_sliders(boid_properties, set_property);
+        setup_sliders(set_property);
     }
 
     let prev_timestamp: number | undefined;

@@ -23,7 +23,34 @@ class Property_Struct {
 
     // for nice property visualization.
     category:           string = DEFAULT_CATEGORY;
+
+    // TODO got some type checking for these guys, i kinda wish typescript had inline structs.
+    __as_float_value: number  = 0;
+    __as_int_value:   number  = 0;
+    __as_bool_value:  boolean = false;
+
+    as_bool(): boolean {
+        if (this.property_data_type != Property_Data_Type.Property_Data_Bool) {
+            throw new Error(`Tried to get property '${this.property_name}' as a bool but it is not a bool!`);
+        }
+        return this.__as_bool_value;
+    };
+
+    as_int(): number {
+        if (this.property_data_type != Property_Data_Type.Property_Data_Int) {
+            throw new Error(`Tried to get property '${this.property_name}' as an int but it is not an int!`);
+        }
+        return this.__as_int_value;
+    };
+
+    as_float(): number {
+        if (this.property_data_type != Property_Data_Type.Property_Data_Float) {
+            throw new Error(`Tried to get property '${this.property_name}' as a float but it is not a float!`);
+        }
+        return this.__as_float_value;
+    };
 };
+
 
 const enum Property_Data_Type {
     None,
@@ -32,20 +59,31 @@ const enum Property_Data_Type {
     Property_Data_Bool,
 };
 
+// lets the whole program interact with the properties, 
+let __Global_Property_Structs: Property_Struct[] | null = null;
 
+export function get_property_structs(): Property_Struct[] {
+    if (__Global_Property_Structs === null) throw new Error("Global_Property_Structs was null in get_property_structs, did you forget to call setup_sliders?");
+    return __Global_Property_Structs;
+}
 
-// puts some sliders up to control some parameters
-export function setup_sliders(properties: [string, string][], set_property: (name:string, value:number|boolean) => void) {
+export function get_property_struct_by_name(name: string): Property_Struct {
+    const property_structs = get_property_structs();
 
-    const SLIDER_CONTAINER_ID = "slideContainer"
-    const slider_container = document.getElementById(SLIDER_CONTAINER_ID);
-    if (slider_container === null)    throw new Error("Cannot Get slider container");
+    for (const property_struct of property_structs) {
+        if (property_struct.property_name === name) {
+            return property_struct;
+        }
+    }
 
-    // TODO for the slides that have a small range (like cohesion factor) make the value the square of the number.
+    throw new Error(`Could not find property struct with name '${name}'`);
+}
 
+export function setup_global_properties(properties: [string, string][]) {
     properties.sort(); // hope someone else wasn't using this.
 
-    const property_structs: Property_Struct[] = [];
+    __Global_Property_Structs = [];
+    // const property_structs: Property_Struct[] = [];
 
     for (const [name, tag] of properties) {
 
@@ -117,8 +155,22 @@ export function setup_sliders(properties: [string, string][], set_property: (nam
             }
         }
 
-        property_structs.push(property_struct);
+        __Global_Property_Structs.push(property_struct);
     }
+};
+
+
+
+// puts some sliders up to control some parameters
+export function setup_sliders(set_property: (name:string, value:number|boolean) => void) {
+    const property_structs = get_property_structs();
+
+    const SLIDER_CONTAINER_ID = "slideContainer"
+    const slider_container = document.getElementById(SLIDER_CONTAINER_ID);
+    if (slider_container === null)    throw new Error("Cannot Get slider container");
+
+    // TODO for the slides that have a small range (like cohesion factor) make the value the square of the number.
+
 
     // Group property_structs by category for collapsible rendering
     const category_map = new Map<string, Property_Struct[]>();
@@ -185,6 +237,7 @@ function make_slider(slider_container: HTMLElement, property_struct: Property_St
                 const the_slider = event.target as HTMLInputElement | null;
                 if (the_slider === null)    throw new Error(`Checkbox input for '${property_struct.property_name}' disappeared unexpectedly`);
 
+                property_struct.__as_bool_value = the_slider.checked;
                 set_property(property_struct.property_name, the_slider.checked);
             });
         } break;
@@ -227,6 +280,9 @@ function make_slider(slider_container: HTMLElement, property_struct: Property_St
 
                 slider_text.textContent = `${label_text}: ${slider_number}`;
 
+                // i don't need to check here, either works.
+                property_struct.__as_float_value = slider_number;
+                property_struct.__as_int_value   = slider_number;
                 set_property(property_struct.property_name, slider_number);
             });
         } break;

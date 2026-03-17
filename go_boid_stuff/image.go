@@ -8,96 +8,6 @@ import (
 	"syscall/js"
 )
 
-type Color uint32;
-
-func (c Color) to_rgba() (uint8, uint8, uint8, uint8) {
-    r := uint8((c >> (8*0)) & 0xFF);
-    g := uint8((c >> (8*1)) & 0xFF);
-    b := uint8((c >> (8*2)) & 0xFF);
-    a := uint8((c >> (8*3)) & 0xFF);
-    return r, g, b, a;
-}
-
-// Go type switch statements are sensitive to distinct
-// types, js.ValueOf() will panic if it gets a "Color".
-func (c Color) js() uint32 { return uint32(c); }
-
-// packs it into a color with the correct endianness for this project.
-func rgba_to_color(r, g, b, a uint8) Color {
-    result := (uint32(r) << (8*0)) |
-              (uint32(g) << (8*1)) |
-              (uint32(b) << (8*2)) |
-              (uint32(a) << (8*3));
-    return Color(result);
-}
-
-func convert_0_1_to_0_255[T Float](x T) uint8 {
-    a := Clamp(Round(x * 255), 0, 255);
-    return uint8(a);
-}
-
-// wish this could have a type parameter, but methods cant have
-// them, and i don't want to make this function twice.
-func (c *Color) Set_Alpha(a float32) {
-    // this could be slightly faster...
-    // just skip the destructuring.
-    r, g, b, _ := c.to_rgba();
-    *c = rgba_to_color(r, g, b, convert_0_1_to_0_255(a));
-}
-
-// my editor has a feature where if you put rgb(28, 110, 192),
-// it makes a color picker. this was probably intended for HTML/CSS,
-// but it works anywhere. Sick Hack.
-func rgb(r, g, b uint8) Color {
-    return rgba_to_color(r, g, b, 255);
-}
-func rgba(r, g, b uint8, a float32) Color {
-    return rgba_to_color(r, g, b, convert_0_1_to_0_255(a));
-}
-
-
-// https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB_alternative
-func HSL_to_RGB[T Float](H, S, L T) Color {
-    H = Clamp(H, 0, 360);
-    S = Clamp(S, 0, 1);
-    L = Clamp(L, 0, 1);
-
-    a := S * min(L, 1-L);
-    f := func(n T) T {
-        k := T(math.Mod(float64(n+H/30), 12));
-        return L - a*max(-1, min(k-3, 9-k, 1));
-    }
-
-    r := convert_0_1_to_0_255(f(0));
-    g := convert_0_1_to_0_255(f(8));
-    b := convert_0_1_to_0_255(f(4));
-    return rgba_to_color(r, g, b, 255);
-}
-
-// returned alpha is c1.a
-func blend_color(c1, c2 Color) Color {
-    _r1, _g1, _b1, _a1 := c1.to_rgba();
-    _r2, _g2, _b2, _a2 := c2.to_rgba();
-
-    // has to be converted into a bigger int type,
-    // because theres not enough precision with the uint8's
-    //
-    // uint for speed? maybe? so the compiler dosnt have to do dumb int things.
-    r1, g1, b1, a1 := uint(_r1), uint(_g1), uint(_b1), uint(_a1);
-    r2, g2, b2, a2 := uint(_r2), uint(_g2), uint(_b2), uint(_a2);
-
-    r3 := (r1*(255 - a2) + r2*a2)/255;
-    g3 := (g1*(255 - a2) + g2*a2)/255;
-    b3 := (b1*(255 - a2) + b2*a2)/255;
-
-    r3 = min(r3, 255);
-    g3 = min(g3, 255);
-    b3 = min(b3, 255);
-
-    return rgba_to_color(uint8(r3), uint8(g3), uint8(b3), uint8(a1));
-}
-
-
 
 type Image struct {
     Buffer []Color; // [RGBA][RGBA][RGBA]...
@@ -197,6 +107,10 @@ type Drawing_Context struct {
     // TODO actually use this.
     js_functions_exist bool;
     js Js_Functions;
+
+
+    // pointer to the boid simulation properties, further enforcing the need for one context...
+    properties *Properties;
 };
 
 // these are functions passed to us by js,
@@ -217,11 +131,17 @@ type Js_Functions struct {
 
 }
 
+func (drawing_context Drawing_Context) assert_js_functions_exist() {
+    if !drawing_context.js_functions_exist {
+        panic("JS functions do not exist");
+    }
+}
+
 var drawing_context Drawing_Context;
 
-
-const DO_SOFTWARE_RENDERING = true;
-const DO_JS_RENDERING = true;
+// TODO this is getting hacky.
+const RENDER_METHOD_SOFTWARE = false;
+const RENDER_METHOD_JS       = true;
 
 
 // this function has noinline, because its gonna be super slow anyway,
@@ -233,28 +153,30 @@ const DO_JS_RENDERING = true;
 //
 //go:noinline
 func Clear_background(c Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         width, height := drawing_context.image.Width, drawing_context.image.Height;
         for i := range width*height {
             drawing_context.image.Buffer[i] = c;
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
         drawing_context.js.clear_background.Invoke(c.js());
     }
 }
 
 // kinda a stupid function. do not use this.
 func Draw_Single_Pixel[T Number](x, y T, c Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         x_int, y_int := int(x), int(y)
         if drawing_context.image.point_within_bounds(x_int, y_int) {
             drawing_context.image.put_color(x_int, y_int, c)
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
         drawing_context.js.draw_single_pixel.Invoke(x, y, c.js());
     }
 }
@@ -262,7 +184,7 @@ func Draw_Single_Pixel[T Number](x, y T, c Color) {
 // i wish go had macros or something so i didn't
 // have to make this function twice.
 func Draw_Rect_int(x, y, w, h int, c Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         min_i, max_i := max(x, 0), min(x+w, drawing_context.image.Width);
         min_j, max_j := max(y, 0), min(y+h, drawing_context.image.Height);
         for j := min_j; j < max_j; j++ {
@@ -272,12 +194,13 @@ func Draw_Rect_int(x, y, w, h int, c Color) {
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
         drawing_context.js.draw_rectangle.Invoke(x, y, w, h, c.js());
     }
 }
 func Draw_Rect_int_no_blend(x, y, w, h int, c Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         min_i, max_i := max(x, 0), min(x+w, drawing_context.image.Width);
         min_j, max_j := max(y, 0), min(y+h, drawing_context.image.Height);
         for j := min_j; j < max_j; j++ {
@@ -288,7 +211,8 @@ func Draw_Rect_int_no_blend(x, y, w, h int, c Color) {
     }
 
     // dose not matter in js, GPU don't care about the blend.
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
         drawing_context.js.draw_rectangle.Invoke(x, y, w, h, c.js());
     }
 }
@@ -324,7 +248,7 @@ func Draw_Rect_Outline[T Number](_x, _y, _w, _h T, _inner_padding T, color Color
 }
 
 func Draw_Circle[T Number](x, y, r T, c Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         min_x := max(Floor(x-r-1), 0);
         max_x := min(Ceil( x+r+1), drawing_context.image.Width);
         min_y := max(Floor(y-r-1), 0);
@@ -343,8 +267,11 @@ func Draw_Circle[T Number](x, y, r T, c Color) {
 
     // hmm, dose the T type work well here? all of
     // them should be converted to float under the hood.
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
-        drawing_context.js.draw_circle.Invoke(x, y, r, c.js());
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
+        // need to convert, js.ValueOf() does not like distinct types.
+        x_f64, y_f64, r_f64 := float64(x), float64(y), float64(r);
+        drawing_context.js.draw_circle.Invoke(x_f64, y_f64, r_f64, c.js());
     }
 }
 func Draw_Circle_v[T Number](p Vec2[T], r T, c Color) { Draw_Circle(p.x, p.y, r, c); }
@@ -354,41 +281,49 @@ func Draw_Circle_v[T Number](p Vec2[T], r T, c Color) { Draw_Circle(p.x, p.y, r,
 func Draw_Ring[T Number](x, y, r1, r2 T, c Color) {
     if !(r1 <= r2) { panic("r1 is less than r2"); }
 
-    if DO_SOFTWARE_RENDERING {
-        min_x := max(Floor(x-r2-1), 0);
-        max_x := min(Ceil( x+r2+1), drawing_context.image.Width);
-        min_y := max(Floor(y-r2-1), 0);
-        max_y := min(Ceil( y+r2+1), drawing_context.image.Height);
+    min_x := max(Floor(x-r2-1), 0);
+    max_x := min(Ceil( x+r2+1), drawing_context.image.Width);
+    min_y := max(Floor(y-r2-1), 0);
+    max_y := min(Ceil( y+r2+1), drawing_context.image.Height);
 
-        for j := min_y; j < max_y; j++ {
-            for i := min_x; i < max_x; i++ {
-                a := T(i) - x;
-                b := T(j) - y;
-                d := a*a + b*b;
+    for j := min_y; j < max_y; j++ {
+        for i := min_x; i < max_x; i++ {
+            a := T(i) - x;
+            b := T(j) - y;
+            d := a*a + b*b;
 
-                // i feel as though there might be a better way to do this.
-                //
-                // this function if looping though a lot of inner pixels...
-                if (r1*r1 < d) && (d < r2*r2) {
+            // i feel as though there might be a better way to do this.
+            //
+            // this function if looping though a lot of inner pixels...
+            if (r1*r1 < d) && (d < r2*r2) {
+                if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
                     drawing_context.image.put_color(i, j, c);
+                }
+
+                if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+                    // TODO fuck ass function call every pixel.
+                    drawing_context.assert_js_functions_exist();
+                    // this is gonna suck, but it might work?
+                    drawing_context.js.draw_single_pixel.Invoke(i, j, c.js());
                 }
             }
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
-        // probably gotta make this a js function...
-        // no way draw_single_pixel is gonna work.
-    }
+    // if DO_JS_RENDERING && drawing_context.js_functions_exist {
+    //     // probably gotta make this a js function...
+    //     // no way draw_single_pixel is gonna work.
+    // }
 }
 
 
 // DDA line generation algorithm
 func Draw_Line[T Number](_p1, _p2 Vec2[T], c Color) {
-    if DO_SOFTWARE_RENDERING {
-        // convert to int. image library should be friendly
-        p1 := Transform[T, int](_p1);
-        p2 := Transform[T, int](_p2);
+    // convert to int. image library should be friendly
+    p1 := Transform[T, int](_p1);
+    p2 := Transform[T, int](_p2);
+
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
 
         // swap so p1.x is small.
         if p1.x > p2.x { p1, p2 = p2, p1; }
@@ -428,8 +363,9 @@ func Draw_Line[T Number](_p1, _p2 Vec2[T], c Color) {
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
-        drawing_context.js.draw_line.Invoke(_p1.x, _p1.y, _p2.x, _p2.y, c.js());
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
+        drawing_context.js.draw_line.Invoke(p1.x, p1.y, p2.x, p2.y, c.js());
     }
 
 }
@@ -440,7 +376,7 @@ func Draw_Line_l(line Line, color Color) {
 
 // https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 func Draw_Triangle[T Number](p1, p2, p3 Vec2[T], color Color) {
-    if DO_SOFTWARE_RENDERING {
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
         v1 := Transform[T, int](p1);
         v2 := Transform[T, int](p2);
         v3 := Transform[T, int](p3);
@@ -505,8 +441,14 @@ func Draw_Triangle[T Number](p1, p2, p3 Vec2[T], color Color) {
         }
     }
 
-    if DO_JS_RENDERING && drawing_context.js_functions_exist {
-        drawing_context.js.draw_triangle.Invoke(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, color.js());
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
+        // another case of the "distinct type"
+        p1_f64 := Transform[T, float64](p1);
+        p2_f64 := Transform[T, float64](p2);
+        p3_f64 := Transform[T, float64](p3);
+        // drawing_context.js.draw_triangle.Invoke(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, color.js());
+        drawing_context.js.draw_triangle.Invoke(p1_f64.x, p1_f64.y, p2_f64.x, p2_f64.y, p3_f64.x, p3_f64.y, color.js());
     }
 }
 

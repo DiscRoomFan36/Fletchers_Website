@@ -13,6 +13,9 @@ import (
 //
 // using tags and reflection to get and set fields, makes it controllable from javascript.
 //
+// TODO use struct's for categories, will decouple js
+// and wasm property tags, might be worth it.
+//
 type Properties struct {
     // in rough order of when their used
 
@@ -76,6 +79,12 @@ type Properties struct {
     // Variable names the Long way
     Pathing_How_Close_To_Switch_In_Proportion_To_Boid_Visual_Range Boid_Float `Property:"float" Range:"0.1;10" Default:"3" Category:"Pathing"`;
 
+
+    // false for software rendering, true for js rendering.
+    //
+    // at this moment i would want an enum, but don't
+    // wanna think about how js is going to parse that.
+    Render_Method bool `Property:"bool" Default:"false" Category:"Rendering"`;
 
     // TODO i would like the category to be "Debug Draw" (without the '_'),
     // but i parse the tags in a dumb way, maybe later.
@@ -146,28 +155,27 @@ const (
 
 // contains a list of all properties.
 //
-// do not get from here, call Get_property_structs() to get this.
-var hidden_property_structs map[string]Property_Struct = nil;
+// do not get from here, call get_property_structs() to get this.
+var __hidden_property_structs map[string]Property_Struct = nil;
 
 // Will panic if there is something funny in the formatting, Call to get the property map.
-func Get_property_structs() map[string]Property_Struct {
+func get_property_structs() map[string]Property_Struct {
     // use property Structs as a flag, to know when init-ed.
-    if hidden_property_structs == nil {
-        hidden_property_structs = create_property_structs();
+    if __hidden_property_structs == nil {
+        __hidden_property_structs = create_property_structs();
     }
 
-    if len(hidden_property_structs) == 0 { panic("Get_property_structs: hidden_property_structs was empty?"); }
-    return hidden_property_structs;
+    if len(__hidden_property_structs) == 0 { panic("get_property_structs: hidden_property_structs was empty?"); }
+    return __hidden_property_structs;
 }
 
+func get_default_properties() Properties {
+    property_structs := get_property_structs();
 
-func set_boid_defaults(boid_sim *Boid_simulation) {
-    property_structs := Get_property_structs();
-
-    properties_reflected := reflect.ValueOf(&boid_sim.properties).Elem();
+    default_properties := Properties{};
+    properties_reflected := reflect.ValueOf(&default_properties).Elem();
 
     for name, prop_struct := range property_structs {
-
         settable_field := properties_reflected.FieldByName(name);
 
         switch prop_struct.Property_data_type {
@@ -175,9 +183,11 @@ func set_boid_defaults(boid_sim *Boid_simulation) {
         case Property_Data_Int:   settable_field.SetInt(int64(prop_struct.Int_default));
         case Property_Data_Bool:  settable_field.SetBool(prop_struct.Bool_default);
 
-        default: log.Panicf("%v: Unknown property data type in 'set_boid_defaults' switch", name);
+        default: log.Panicf("%v: Unknown property data type in 'get_default_properties' switch", name);
         }
     }
+
+    return default_properties;
 }
 
 type Union_Like struct {
@@ -186,13 +196,13 @@ type Union_Like struct {
     As_bool  bool;
 }
 
-func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Union_Like) {
-    property_structs := Get_property_structs();
+func set_properties_with_map(properties *Properties, the_map map[string]Union_Like) {
+    property_structs := get_property_structs();
 
     // check if the name is in the property names.
     bad_name := false;
     for name := range the_map {
-        if !contains(property_structs, name) {
+        if !Contains(property_structs, name) {
             fmt.Printf("ERROR: '%v' is not in property structs\n", name);
             bad_name = true;
         }
@@ -200,7 +210,7 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
 
     if bad_name { log.Fatalf("ERROR: There was a bad name.\n"); }
 
-    properties_reflected := reflect.ValueOf(&boid_sim.properties).Elem();
+    properties_reflected := reflect.ValueOf(properties).Elem();
 
     for name, union := range the_map {
 
@@ -213,7 +223,7 @@ func (boid_sim *Boid_simulation) Set_Properties_with_map(the_map map[string]Unio
         case Property_Data_Int:   settable_field.SetInt(int64(union.As_int));
         case Property_Data_Bool:  settable_field.SetBool(union.As_bool);
 
-        default: log.Panicf("%v: Unknown property in 'Set_Properties_with_map' switch", name);
+        default: log.Panicf("%v: Unknown property in 'set_properties_with_map' switch", name);
         }
     }
 }
@@ -404,11 +414,6 @@ func split_once(s string, sep string) (found bool, a string, b string) {
     if len(sections) == 1 { return false, s, ""; }
 
     return true, sections[0], sections[1];
-}
-
-func contains[T comparable, U any](m map[T]U, key T) bool {
-    _, ok := m[key];
-    return ok;
 }
 
 func tag_property_to_parts(prop string) (string, string) {
