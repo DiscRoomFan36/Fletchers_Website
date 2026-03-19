@@ -129,6 +129,10 @@ type Js_Functions struct {
     // draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
     draw_single_pixel   js.Value;
 
+    // helpful to draw cool backgrounds.
+    //
+    // draw_rectangle_frame: (x: number, y: number, w: number, h: number, thickness: number, c: Boid_Color) => void;
+    draw_rectangle_frame js.Value;
 }
 
 func (drawing_context Drawing_Context) assert_js_functions_exist() {
@@ -229,22 +233,35 @@ func Draw_Rect[T Number](x, y, w, h T, c Color) {
 // TODO maybe we can do this better with a
 // dedicated function? with js rendering.
 func Draw_Rect_Outline[T Number](_x, _y, _w, _h T, _inner_padding T, color Color) {
-    x := Round(_x);
-    y := Round(_y);
-    w := Round(_w);
-    h := Round(_h);
-    inner_padding := Round(_inner_padding);
+    if drawing_context.properties.Render_Method == RENDER_METHOD_SOFTWARE {
+        x := Round(_x);
+        y := Round(_y);
+        w := Round(_w);
+        h := Round(_h);
+        inner_padding := Round(_inner_padding);
 
-    // do bounds out here for speed.
-    if (x + w <= 0) ||
-       (y + h <= 0) ||
-       (x >= drawing_context.image.Width) ||
-       (y >= drawing_context.image.Height) { return; }
+        // do bounds out here for speed.
+        if (x + w <= 0) ||
+        (y + h <= 0) ||
+        (x >= drawing_context.image.Width) ||
+        (y >= drawing_context.image.Height) { return; }
 
-    Draw_Rect_int_no_blend(x,                 y,                 w,             inner_padding,     color); // top edge
-    Draw_Rect_int_no_blend(x,                 y+h-inner_padding, w,             inner_padding,     color); // bottom edge
-    Draw_Rect_int_no_blend(x,                 y+inner_padding,   inner_padding, h-inner_padding*2, color); // left edge
-    Draw_Rect_int_no_blend(x+w-inner_padding, y+inner_padding,   inner_padding, h-inner_padding*2, color); // right edge
+        Draw_Rect_int_no_blend(x,                 y,                 w,             inner_padding,     color); // top edge
+        Draw_Rect_int_no_blend(x,                 y+h-inner_padding, w,             inner_padding,     color); // bottom edge
+        Draw_Rect_int_no_blend(x,                 y+inner_padding,   inner_padding, h-inner_padding*2, color); // left edge
+        Draw_Rect_int_no_blend(x+w-inner_padding, y+inner_padding,   inner_padding, h-inner_padding*2, color); // right edge
+    }
+
+    if drawing_context.properties.Render_Method == RENDER_METHOD_JS {
+        drawing_context.assert_js_functions_exist();
+
+        // need to convert, js.ValueOf() does not like distinct types.
+        x_f64, y_f64 := float64(_x), float64(_y);
+        w_f64, h_f64 := float64(_w), float64(_h);
+        inner_padding_f64 := float64(_inner_padding);
+
+        drawing_context.js.draw_rectangle_frame.Invoke(x_f64, y_f64, w_f64, h_f64, inner_padding_f64, color.js());
+    }
 }
 
 func Draw_Circle[T Number](x, y, r T, c Color) {

@@ -84,7 +84,7 @@ type Properties struct {
     //
     // at this moment i would want an enum, but don't
     // wanna think about how js is going to parse that.
-    Render_Method bool `Property:"bool" Default:"false" Category:"Rendering"`;
+    Render_Method bool `Property:"bool" Default:"true" Category:"Rendering"`;
 
     // TODO i would like the category to be "Debug Draw" (without the '_'),
     // but i parse the tags in a dumb way, maybe later.

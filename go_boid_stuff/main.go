@@ -70,8 +70,10 @@ type Things_Provided_By_Js_Struct struct {
     // draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
     draw_single_pixel   js.Value;
 
-    // TODO draw_rectangle_border(), would speed up drawing the background,
-    // which is the slowest part currently.
+    // helpful to draw cool backgrounds.
+    //
+    // draw_rectangle_frame: (x: number, y: number, w: number, h: number, thickness: number, c: Boid_Color) => void;
+    draw_rectangle_frame js.Value;
 };
 
 // GetProperties must be called first, because it also gives us some functions.
@@ -93,12 +95,13 @@ func Initialize_Js_And_Go_Connection(this js.Value, args []js.Value) any {
     things_provided_by_js.log_string_function.Invoke("Using the log_string_function, hello from go! ");
 
     drawing_context.js = Js_Functions{
-        clear_background:  things_provided_by_js.clear_background,
-        draw_rectangle:    things_provided_by_js.draw_rectangle,
-        draw_circle:       things_provided_by_js.draw_circle,
-        draw_triangle:     things_provided_by_js.draw_triangle,
-        draw_line:         things_provided_by_js.draw_line,
-        draw_single_pixel: things_provided_by_js.draw_single_pixel,
+        clear_background:       things_provided_by_js.clear_background,
+        draw_rectangle:         things_provided_by_js.draw_rectangle,
+        draw_circle:            things_provided_by_js.draw_circle,
+        draw_triangle:          things_provided_by_js.draw_triangle,
+        draw_line:              things_provided_by_js.draw_line,
+        draw_single_pixel:      things_provided_by_js.draw_single_pixel,
+        draw_rectangle_frame:   things_provided_by_js.draw_rectangle_frame,
     };
     drawing_context.js_functions_exist = true;
 

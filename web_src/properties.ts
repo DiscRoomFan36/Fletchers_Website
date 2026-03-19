@@ -98,10 +98,20 @@ export class Property_Struct {
             } break;
 
             case "Default": {
+                // remember to set the "__as_x_value" to the default.
                 switch (this.property_data_type) {
-                    case Property_Data_Type.Property_Data_Float: { this.float_default = parseFloat(right); } break;
-                    case Property_Data_Type.Property_Data_Int  : { this.int_default   = parseInt  (right); } break;
-                    case Property_Data_Type.Property_Data_Bool : { this.bool_default  = parse_bool(right); } break;
+                    case Property_Data_Type.Property_Data_Float: {
+                        this.float_default    = parseFloat(right);
+                        this.__as_float_value = this.float_default;
+                    } break;
+                    case Property_Data_Type.Property_Data_Int  : {
+                        this.int_default      = parseInt  (right);
+                        this.__as_int_value   = this.int_default;
+                    } break;
+                    case Property_Data_Type.Property_Data_Bool : {
+                        this.bool_default     = parse_bool(right);
+                        this.__as_bool_value  = this.bool_default;
+                    } break;
 
                     default: { throw new Error(`Unknown data type in ${name}`); }
                 }
