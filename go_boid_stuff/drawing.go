@@ -503,7 +503,6 @@ func init() {
 
             // a very muted rainbow color.
             *box_color = HSL_to_RGB(rand_f32() * 360, 0.35, 0.05);
-            // *box_color = rgb(51, 51, 51)
         }
     }
 }

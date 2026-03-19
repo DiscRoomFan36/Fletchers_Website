@@ -1,5 +1,5 @@
 
-import { get_property_structs, Property_Struct, Property_Data_Type, DEFAULT_PROPERTY_CATEGORY } from "./properties.js";
+import { get_property_structs, Property_Struct, Property_Data_Type, DEFAULT_PROPERTY_CATEGORY } from "./properties";
 
 
 // puts some sliders up to control some parameters

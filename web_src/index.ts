@@ -3,7 +3,7 @@
 
 import { Log_Type, log, DEBUG_DISPLAY } from "./logger";
 import { setup_sliders } from "./setup_sliders";
-import { setup_global_properties, get_property_struct_by_name } from "./properties.js";
+import { setup_global_properties, get_property_struct_by_name } from "./properties";
 
 // cool trick
 const IN_DEV_MODE = (window.location.hostname === "localhost");
@@ -43,6 +43,8 @@ interface Functions_To_Provide {
     draw_triangle:     (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: Boid_Color) => void;
     draw_line:         (x1: number, y1: number, x2: number, y2: number, c: Boid_Color) => void;
     draw_single_pixel: (x: number, y: number, c: Boid_Color) => void;
+
+    draw_rectangle_frame: (x: number, y: number, w: number, h: number, thickness: number, c: Boid_Color) => void;
 }
 
 // NOTE we *CAN* change these names, the 'get_go_functions()' handles the real names
@@ -139,19 +141,21 @@ function get_all_collidable_rects(): Rect[] {
     return result;
 };
 
-function render_boids(display: Display, go: Go_Functions) {
-
-    const enum Render_Method {
-        Software = 0,
-        Js       = 1,
-    };
-
+const enum Render_Method {
+    Software = 0,
+    Js       = 1,
+};
+function get_render_method(): Render_Method {
     // I sure hope I don't hit a race condition.
     //
     // i think all functions are queued in javascript, so any actions
     // take place either before this function is called, or after.
     const render_method = get_property_struct_by_name("Render_Method").get_bool() ? Render_Method.Js : Render_Method.Software;
+    return render_method;
+}
 
+function render_boids(display: Display, go: Go_Functions) {
+    const render_method = get_render_method();
 
     // we get the bounding rectangles of elements in the document,
     //
@@ -224,6 +228,7 @@ function render_boids(display: Display, go: Go_Functions) {
     };
 
     const num_bytes_filled = go.get_next_frame(args);
+    if (typeof num_bytes_filled !== "number")    throw new Error("go.get_next_frame probably just panic'd...");
 
     //
     // load the back_buffer_render_ctx with the new image.
@@ -372,6 +377,7 @@ async function main() {
         back_buffer_image_height: back_buffer_image_height,
     };
 
+    // function inlining don't fail me now.
     function map_xy_to_canvas_space(x: number, y: number): [number, number] {
         const squish_factor = display.back_buffer_render_ctx.canvas.width / display.back_buffer_image_width;
         const real_x = x * squish_factor;
@@ -438,9 +444,27 @@ async function main() {
             display.back_buffer_render_ctx.fillStyle = Boid_Color_To_Rgb(c);
             // hmm...
             display.back_buffer_render_ctx.fillRect(x, y, 1, 1);
-        }
+        },
+
+        draw_rectangle_frame: (x, y, w, h, thickness, c) => {
+            var _: number; // bleh
+            [x, y] = map_xy_to_canvas_space(x, y);
+            [w, h] = map_xy_to_canvas_space(w, h);
+            [thickness, _] = map_xy_to_canvas_space(thickness, 0);
+
+            display.back_buffer_render_ctx.strokeStyle = Boid_Color_To_Rgb(c);
+            display.back_buffer_render_ctx.lineWidth = thickness;
+
+            // strokeRect is a line that passes exactly though the middle of pixels, and grows the line around it. here we put the rectangle into the middle of the thing we want
+            display.back_buffer_render_ctx.strokeRect(
+                x + thickness/2, y + thickness/2,
+                w - thickness,   h - thickness,
+            );
+        },
     };
-    const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide)
+
+    const go_properties_as_an_object = go.Initialize_Js_And_Go_Connection(functions_to_provide);
+    if (typeof go_properties_as_an_object !== "object")    throw new Error("go.Initialize_Js_And_Go_Connection probably just panic'd...");
 
     { // Handle property stuff
 
