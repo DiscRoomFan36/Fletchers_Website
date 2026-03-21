@@ -17,33 +17,80 @@
 		</header>
 
 		<main id="main_area">
-			<div id="canvas_div">
-				<div id="center_area">
-						<!-- do we need this div? or do we just need the details? -->
-						<!-- we probably do... thats just how css works... -->
-						<div id="settings_column">
-							<details>
-								<summary id="settings_summary">Simulation Settings</summary>
-								<div id="slideContainer"></div>
-							</details>
-						</div>
 
-						<div id="boid_panel">
-							<div id="boid_container">
-								<canvas id="boid_canvas"></canvas>
+			<section id="section_intro" class="page_section">
+				<div class="section_content text_section">
+					<h2>Intro</h2>
+					<p>
+						This page can hold multiple sections, with the boid simulation as one feature rather than the whole layout.
+						Use each block here as a template and swap in your real content over time.
+					</p>
+				</div>
+			</section>
 
-								<!-- overlay random statements inside the boid area (centered) -->
-								<div id="random_statements" class="overlay_statements">
-									<p class="noselect collide">60FPS Software Rendering<br>No Dependencies</p>
-									<p id="not_my_passion" class="noselect collide">Graphic Design Is <em id="NOT">NOT</em> My Passion</p>
-									<p class="noselect collide">Left Click to Summon the Boids<br>Middle Click to create a new wall</p>
+			<section id="section_boids" class="page_section">
+				<div class="section_content">
+					<h2>Boid Playground</h2>
+					<p class="section_lead">Golang + WASM simulation. I *Could* put more boids in it, but threading is not available in a wasm environment :(</p>
+
+					<div id="canvas_div">
+						<div id="center_area">
+							<div id="settings_column">
+								<details>
+									<summary id="settings_summary">Simulation Settings</summary>
+									<div id="slideContainer"></div>
+								</details>
+							</div>
+
+							<div id="boid_panel">
+								<div id="boid_container">
+									<canvas id="boid_canvas"></canvas>
+
+									<!-- overlay random statements inside the boid area (centered) -->
+									<div id="random_statements" class="overlay_statements">
+										<p class="noselect collide">60FPS<br>No Dependencies</p>
+										<p id="not_my_passion" class="noselect collide">Graphic Design Is <em id="NOT">NOT</em> My Passion</p>
+										<p class="noselect collide">Left Click to Summon the Boids<br>Middle Click to create a new wall</p>
+									</div>
+									<!-- end overlay -->
 								</div>
-								<!-- end overlay -->
 							</div>
 						</div>
 					</div>
 				</div>
-			</main>
+			</section>
+
+			<section id="section_projects" class="page_section">
+				<div class="section_content text_section">
+					<h2>Projects</h2>
+					<div class="template_grid">
+						<article class="template_card">
+							<h3>Project Slot A</h3>
+							<p>Short project summary, tech used, and what you learned.</p>
+						</article>
+						<article class="template_card">
+							<h3>Project Slot B</h3>
+							<p>Add links, screenshots, or a one-line challenge statement.</p>
+						</article>
+						<article class="template_card">
+							<h3>Project Slot C</h3>
+							<p>Keep this as a quick placeholder while drafting the page structure.</p>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section id="section_notes" class="page_section">
+				<div class="section_content text_section">
+					<h2>Process Notes</h2>
+					<p>
+						Template area for dev logs, experiments, and updates.
+						You can keep this as plain text or convert it to a list/timeline later.
+					</p>
+				</div>
+			</section>
+
+		</main>
 
 		<footer id="site_footer">
 			<div id="footer_links">

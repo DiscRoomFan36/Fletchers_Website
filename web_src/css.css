@@ -13,6 +13,9 @@
 :root {
     --text-color: rgb(196, 128, 57);
     --settings-text-color: rgb(120, 220, 255);
+    --section-surface: rgba(8, 14, 30, 0.52);
+    --section-border: rgba(255, 255, 255, 0.09);
+    --section-gap: 1.25rem;
     /* --text-color: rgb(109, 98, 238); */
 }
 
@@ -94,16 +97,77 @@ canvas {
     /* leave room for the header and footer */
     padding-top: 4.2rem; /* header height */
     padding-bottom: 3.2rem; /* footer height */
+    width: min(1500px, 96vw);
+    margin: 0 auto;
+}
+
+.page_section {
+    margin: var(--section-gap) auto;
+}
+
+.section_content {
+    border: 1px solid var(--section-border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--section-surface), rgba(5, 8, 18, 0.32));
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+    padding: 1.1rem;
+}
+
+.text_section h2 {
+    margin: 0 0 0.7rem 0;
+    font-size: 1.9rem;
+    color: var(--text-color);
+}
+
+.text_section p {
+    margin: 0;
+    color: rgba(245, 245, 245, 0.88);
+    line-height: 1.45;
+    font-size: 1.05rem;
+}
+
+#section_boids h2 {
+    margin: 0 0 0.35rem 0;
+    color: var(--text-color);
+}
+
+.section_lead {
+    margin: 0 0 0.9rem 0;
+    color: rgba(235, 235, 235, 0.9);
+}
+
+.template_grid {
+    margin-top: 0.9rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.template_card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.template_card h3 {
+    margin: 0 0 0.45rem 0;
+    color: rgba(255, 255, 255, 0.93);
+    font-size: 1.12rem;
+}
+
+.template_card p {
+    margin: 0;
+    font-size: 0.98rem;
 }
 
 #center_area {
-    width: 95vw; /* slightly wider */
-    max-width: 1500px;
-    margin: 1.5rem auto;
+    width: 100%;
+    margin: 0;
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
-    padding: 0 1rem;
+    padding: 0;
 }
 
 #boid_panel {
@@ -219,6 +283,24 @@ a:hover {
 
 /* Make overlay text smaller on small screens */
 @media (max-width: 900px) {
+    #main_area {
+        width: 100%;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+    }
+
+    .text_section h2 {
+        font-size: 1.45rem;
+    }
+
+    .template_grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section_content {
+        padding: 0.9rem;
+    }
+
     .overlay_statements {
         font-size: 1.05rem;
         padding: 1rem;
