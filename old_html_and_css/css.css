@@ -1,0 +1,679 @@
+
+@font-face {
+    font-family: 'Iosevka';
+    src: url('fonts/iosevka-light.ttf');
+}
+
+/* Make sizing predictable so padding doesn't cause overflow */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+
+:root {
+    --text-color: rgb(196, 128, 57);
+    --settings-text-color: rgb(120, 220, 255);
+    --section-surface: rgba(8, 14, 30, 0.52);
+    --section-border: rgba(255, 255, 255, 0.09);
+    --section-gap: 1.25rem;
+    /* --text-color: rgb(109, 98, 238); */
+}
+
+body {
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+    /* NOTE for some reason the canvas doesn't extend to the bottom of the page... */
+    background-color: #2a3352;
+    /* layered repeating pattern: small triangle tile + subtle diagonal wash */
+    background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><polygon points='6,2 10,10 2,10' fill='%23ffffff' opacity='0.05'/></svg>"),
+        linear-gradient(135deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    /* keep triangle visual size the same by using a slightly larger tile canvas (28px) with the small polygon coords */
+    background-size: 28px 28px, auto;
+    background-repeat: repeat;
+    background-attachment: scroll;
+
+    font-family: 'Iosevka', serif;
+
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+html {
+    overflow: hidden;
+}
+
+#canvas_div {
+    /* Main page canvas area — now flows inside layout instead of fixed */
+    position: relative;
+    width: 100%;
+    padding: 0;
+    margin: 0 auto;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+
+#the_rest {
+    position: absolute;
+}
+
+/* https://stackoverflow.com/questions/826782/how-to-disable-text-selection-highlighting */
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+#site_header {
+    position: relative;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15));
+}
+
+#site_header #my_name_in_the_middle {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 2.4rem;
+}
+
+#site_header #heading_subtitle {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(200,200,200,0.85);
+}
+
+#main_area {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    width: 100%;
+    max-width: 1500px;
+    padding-left: 2vw;
+    padding-right: 2vw;
+    margin: 0 auto;
+    min-height: 0;
+    overflow-y: scroll;
+    overflow-x: clip;
+    scrollbar-gutter: stable both-edges;
+    overscroll-behavior-x: none;
+}
+
+.page_section {
+    margin: var(--section-gap) auto;
+}
+
+.section_content {
+    border: 1px solid var(--section-border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--section-surface), rgba(5, 8, 18, 0.32));
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+    padding: 1.1rem;
+}
+
+.text_section h2 {
+    margin: 0 0 0.7rem 0;
+    font-size: 1.9rem;
+    color: var(--text-color);
+}
+
+.text_section p {
+    margin: 0;
+    color: rgba(245, 245, 245, 0.88);
+    line-height: 1.45;
+    font-size: 1.05rem;
+}
+
+#section_boids h2 {
+    margin: 0 0 0.35rem 0;
+    color: var(--text-color);
+}
+
+.section_lead {
+    margin: 0 0 0.9rem 0;
+    color: rgba(235, 235, 235, 0.9);
+}
+
+.template_grid {
+    margin-top: 0.9rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.template_card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.template_card h3 {
+    margin: 0 0 0.45rem 0;
+    color: rgba(255, 255, 255, 0.93);
+    font-size: 1.12rem;
+}
+
+.template_card p {
+    margin: 0;
+    font-size: 0.98rem;
+}
+
+#center_area {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+    padding: 0;
+}
+
+#boid_panel {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+#settings_column {
+    /* slightly smaller per user's preference */
+    flex: 0 1 400px;
+    width: min(400px, 100%);
+    min-width: 260px;
+    max-width: 100%;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#settings_column details {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+#slideContainer {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+#site_footer {
+    position: relative;
+    z-index: 30;
+    background: linear-gradient(0deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15));
+    padding: 0.6rem 1rem;
+}
+
+#footer_links {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 3.5rem;
+    justify-content: center;
+    align-items: center;
+    padding: 0 1rem;
+}
+
+#footer_links a, #footer_links #email {
+    color: var(--text-color);
+    font-size: 1.35rem; /* bigger for prominence */
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Larger on wide screens */
+@media (min-width: 1000px) {
+    #footer_links a, #footer_links #email {
+        font-size: 1.6rem;
+    }
+}
+
+/* Provide more breathing room on very wide screens */
+@media (min-width: 1400px) {
+    #footer_links {
+        gap: 9rem;
+    }
+}
+
+a:hover {
+    color: rgb(185, 82, 134);
+}
+
+/* overlay statements inside the boid container */
+.overlay_statements {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "top-left top-right" "bottom bottom";
+    gap: 1rem 2rem;
+    align-items: center;
+    justify-items: center;
+    text-align: center;
+    pointer-events: none; /* don't block clicks to canvas; set per-element if needed */
+    font-size: 1.5rem; /* larger for prominence */
+    color: var(--text-color);
+    padding: 2rem;
+}
+
+.overlay_statements p {
+    margin: 0;
+    line-height: 1.05;
+    max-width: 46ch;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+}
+
+.overlay_statements p:nth-child(1) {
+    grid-area: top-left;
+}
+.overlay_statements p:nth-child(2) {
+    grid-area: top-right;
+}
+.overlay_statements p:nth-child(3) {
+    grid-area: bottom;
+}
+
+/* Make overlay text smaller on small screens */
+@media (max-width: 900px) {
+    #main_area {
+        width: 100%;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+    }
+
+    .text_section h2 {
+        font-size: 1.45rem;
+    }
+
+    .template_grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section_content {
+        padding: 0.9rem;
+    }
+
+    .overlay_statements {
+        font-size: 1.05rem;
+        padding: 1rem;
+        gap: 0.6rem;
+    }
+    #center_area {
+        flex-direction: column-reverse;
+    }
+    #settings_column {
+        width: 100%;
+        max-width: none;
+    }
+    .overlay_statements {
+        grid-template-columns: 1fr;
+        grid-template-areas: "top-left" "top-right" "bottom";
+    }
+    .overlay_statements p {
+        max-width: 85vw;
+    }
+
+    /* Make the boid canvas bigger and centered on narrow screens */
+    #boid_panel {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+    }
+
+    /* Ensure the container defines a predictable height so the canvas scales well */
+    #boid_container {
+        position: relative; /* required for absolute-positioned overlays */
+        width: 100%;
+        max-width: 1100px;
+        /* use a viewport-based height but don't exceed available space */
+        height: min(62vh, 80vw);
+        margin: 0 auto; /* center horizontally */
+    }
+
+    /* Make canvas fill the container and keep it centered */
+    #boid_container canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    /* Slightly relax overlay widths on very small screens */
+    .overlay_statements p {
+        max-width: 92vw;
+    }
+}
+
+
+
+/* ---------------------------------------------------- */
+/*                   Slider Stuff                       */
+/* ---------------------------------------------------- */
+
+summary {
+    background-color: #151515;
+    color: lightgoldenrodyellow;
+    opacity: 0.7;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+}
+
+/* Make the summary look like a button and add a caret */
+summary#settings_summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+}
+/* hide the browser default marker for this summary and use a left-side caret */
+summary#settings_summary::-webkit-details-marker {
+    display: none;
+}
+summary#settings_summary::marker {
+    display: none;
+}
+
+summary#settings_summary::before {
+    /* use a right-pointing triangle so it rotates down like the native category marker */
+    content: '\25B6'; /* ▶ */
+    display: inline-block;
+    margin-right: 0.6rem;
+    transform-origin: center;
+    transition: transform .12s ease;
+    font-size: 0.95em;
+}
+
+/* rotate 90deg when open so the triangle points down to match categories */
+details[open] > summary#settings_summary::before {
+    transform: rotate(90deg);
+}
+
+/* https://www.w3schools.com/howto/howto_js_rangeslider.asp */
+#slideContainer {
+    /* default: inline flow for small screens */
+    position: static;
+    width: 100%;
+    max-width: 92vw;
+    max-height: none;
+    overflow: visible;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    padding-left: 0.8rem;
+    border: 1px solid rgba(120,220,255,0.10);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+}
+
+.rangeHolder {
+    background: linear-gradient(180deg, #161616, #060606);
+    border: 2px solid rgba(120,220,255,0.28);
+
+    width: 90%;
+
+    justify-self: center;
+
+    padding: 0.5rem;
+    border-radius: 0.35rem;
+
+    display: flex;
+    flex-direction: column;
+    opacity: 0.95;
+    align-items: center;
+
+    margin: 0.06rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.02) inset, 0 0 18px rgba(120,220,255,0.06);
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.rangeHolder:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 28px rgba(120,220,255,0.08);
+}
+
+.checkbox_toggle {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+.checkbox_toggle_label {
+    padding: 0.15rem 0;
+    color: var(--settings-text-color);
+    font-size: 0.95rem;
+    line-height: 1.1;
+    font-weight: 600;
+}
+.checkbox_toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    align-self: flex-start;
+}
+
+.sliderKey {
+    color: var(--settings-text-color);
+    margin: 0.2rem;
+    white-space: normal; /* allow wrapping to avoid overflow */
+    overflow-wrap: anywhere;
+    font-weight: 600;
+}
+
+details {
+    overflow: visible;
+}
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 10px;
+    border-radius: 6px;  
+    background: linear-gradient(90deg, #2b2b2b, #1f1f1f);
+    outline: none;
+    opacity: 0.95;
+    -webkit-transition: .12s;
+    transition: opacity .12s, box-shadow .12s;
+}
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+}
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%; 
+    background: var(--settings-text-color);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--settings-text-color);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Category groups (collapsible) */
+.categoryGroup {
+    margin: 0.4rem 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.categoryHeader {
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    color: lightgoldenrodyellow;
+}
+
+/* Give category headers the same caret + rotate animation as the settings summary */
+summary.categoryHeader { /* summary elements created in setup_sliders.ts */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+summary.categoryHeader::-webkit-details-marker {
+    display: none;
+}
+summary.categoryHeader::marker {
+    display: none;
+}
+
+summary.categoryHeader::before {
+    content: '\25B6'; /* ▶ */
+    display: inline-block;
+    margin-right: 0.6rem;
+    transform-origin: center;
+    transition: transform .12s ease;
+    font-size: 0.95em;
+}
+
+details[open] > summary.categoryHeader::before {
+    transform: rotate(90deg);
+}
+.categoryBody {
+    padding: 0.6rem;
+    display: grid;
+    /* allow items to wrap into multiple columns but be able to shrink
+        reduce the minimum size so more items can fit per row inside
+        the narrow settings column */
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem;
+    align-items: start;
+}
+
+.rangeHolder {
+    background: linear-gradient(180deg, #151515, #040404);
+
+    width: auto;
+
+    justify-self: stretch;
+
+    padding: 0.4rem;
+    border-radius: 0.35rem;
+
+    display: flex;
+    flex-direction: column;
+    opacity: 0.98;
+    align-items: stretch;
+
+    margin: 0.05rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 14px rgba(120,220,255,0.04);
+    min-width: 0; /* allow children to shrink inside grid */
+    overflow: visible;
+    border: 2px solid rgba(120,220,255,0.24);
+}
+.rangeHolder * {
+    box-sizing: border-box;
+}
+.rangeHolder {
+    max-width: 100%;
+}
+
+.rangeHolder .sliderKey {
+    display: block;
+    width: 100%;
+}
+.rangeHolder input.slider {
+    width: 100%;
+    max-width: 100%;
+}
+.rangeHolder input[type="checkbox"] {
+    max-width: none;
+}
+.checkbox_toggle_label {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.rangeHolder * {
+    box-sizing: border-box;
+}
+.rangeHolder {
+    max-width: 100%;
+}
+.rangeHolder:hover {
+    opacity: 1;
+}
+
+/* Constrain boid canvas into a centered container */
+#boid_container {
+    width: 100%;
+    max-width: 1400px;
+    height: 75vh; /* larger canvas */
+    margin: 1rem auto;
+    background: #121212;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+    position: relative;
+}
+#boid_container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Disable popout: force slideContainer to render inline under the summary
+   and remove animations/absolute positioning that caused off-screen layout. */
+details > #slideContainer {
+    position: static !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 92vw !important;
+    box-shadow: none !important;
+}
+
+details[open] > #slideContainer {
+    transform: none !important;
+    opacity: 1 !important;
+}

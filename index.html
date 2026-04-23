@@ -1,106 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<title>Fletcher Moloney</title>
-		<link rel="icon" type="image/png" href="./web_src/icon.png" />
-		<link rel="stylesheet" href="./web_src/css.css" />
-		<meta charset="utf-8" />
-		<!-- golang runtime script -->
-		<script src="./dist/wasm_exec.js"></script>
-		<!-- The thing that animates the boids. -->
-		<script src="./dist/build.js"></script>
-	</head>
-	<body>
-		<header id="site_header">
-			<h1 id="my_name_in_the_middle" class="noselect">Fletcher Moloney</h1>
-			<p id="heading_subtitle" class="noselect">Bachelor of Computer Science</p>
-		</header>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fletcher Moloney | Boid Zoo</title>
+    <link rel="stylesheet" href="./web_src/css.css">
+    <script src="./dist/wasm_exec.js" defer></script>
+    <script src="./dist/build.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <p class="kicker">Portfolio Experiment</p>
+            <h1>Fletcher Moloney</h1>
+            <p class="subtitle">Boids, Go, TypeScript, and strange ideas that ship.</p>
+        </div>
+    </header>
 
-		<main id="main_area">
+    <main class="page-main">
+        <section class="section intro-panel">
+            <h2>Welcome</h2>
+            <p>
+                This is a rebuilt front page with cleaner structure and a dedicated area for the boid simulation.
+                Replace any of this copy with your real content when you are ready.
+            </p>
+        </section>
 
-			<section id="section_intro" class="page_section">
-				<div class="section_content text_section">
-					<h2>Intro</h2>
-					<p>
-						This page can hold multiple sections, with the boid simulation as one feature rather than the whole layout.
-						Use each block here as a template and swap in your real content over time.
-					</p>
-				</div>
-			</section>
+        <section class="section boid-section">
+            <div class="boid-headline">
+                <h2>Boid Playground</h2>
+                <p>Use left click to summon boids. Use middle click to place walls.</p>
+            </div>
 
-			<section id="section_boids" class="page_section">
-				<div class="section_content">
-					<h2>Boid Playground</h2>
-					<p class="section_lead">Golang + WASM simulation. I *Could* put more boids in it, but threading is not available in a wasm environment :(</p>
+            <div class="boid-layout">
+                <aside class="settings-panel">
+                    <details open>
+                        <summary>Simulation Settings</summary>
+                        <div id="slideContainer"></div>
+                    </details>
+                </aside>
 
-					<div id="canvas_div">
-						<div id="center_area">
-							<div id="settings_column">
-								<details>
-									<summary id="settings_summary">Simulation Settings</summary>
-									<div id="slideContainer"></div>
-								</details>
-							</div>
+                <div id="boid_container" class="boid-frame">
+                    <canvas id="boid_canvas" aria-label="Boid simulation canvas"></canvas>
 
-							<div id="boid_panel">
-								<div id="boid_container">
-									<canvas id="boid_canvas"></canvas>
+                    <div class="boid-overlay" aria-hidden="true">
+                        <p class="collide">60 FPS target</p>
+                        <p class="collide">WASM render pipeline</p>
+                        <p class="collide">Interactive obstacles</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-									<!-- overlay random statements inside the boid area (centered) -->
-									<div id="random_statements" class="overlay_statements">
-										<p class="noselect collide">60FPS<br>No Dependencies</p>
-										<p id="not_my_passion" class="noselect collide">Graphic Design Is <em id="NOT">NOT</em> My Passion</p>
-										<p class="noselect collide">Left Click to Summon the Boids<br>Middle Click to create a new wall</p>
-									</div>
-									<!-- end overlay -->
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
+        <section class="section content-grid">
+            <article>
+                <h3>Current Focus</h3>
+                <p>
+                    Building graphics and simulation projects that stay readable, hackable, and fun to tune.
+                </p>
+            </article>
+            <article>
+                <h3>Project Notes</h3>
+                <p>
+                    This slot is placeholder text. Add links, implementation details, or performance observations.
+                </p>
+            </article>
+            <article>
+                <h3>Future Section</h3>
+                <p>
+                    Another placeholder block for writing logs, updates, and weird experiments over time.
+                </p>
+            </article>
+        </section>
 
-			<section id="section_projects" class="page_section">
-				<div class="section_content text_section">
-					<h2>Projects</h2>
-					<div class="template_grid">
-						<article class="template_card">
-							<h3>Project Slot A</h3>
-							<p>Short project summary, tech used, and what you learned.</p>
-						</article>
-						<article class="template_card">
-							<h3>Project Slot B</h3>
-							<p>Add links, screenshots, or a one-line challenge statement.</p>
-						</article>
-						<article class="template_card">
-							<h3>Project Slot C</h3>
-							<p>Keep this as a quick placeholder while drafting the page structure.</p>
-						</article>
-					</div>
-				</div>
-			</section>
+        <section class="section">
+            <h2>Dummy Text</h2>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer facilisis, sapien ac dignissim
+                aliquet, mauris augue ultrices magna, vel viverra lectus risus vel est. Curabitur posuere lacus a
+                commodo luctus.
+            </p>
+        </section>
+    </main>
 
-			<section id="section_notes" class="page_section">
-				<div class="section_content text_section">
-					<h2>Process Notes</h2>
-					<p>
-						Template area for dev logs, experiments, and updates.
-						You can keep this as plain text or convert it to a list/timeline later.
-					</p>
-				</div>
-			</section>
-
-		</main>
-
-		<footer id="site_footer">
-			<div id="footer_links">
-				<a href="https://github.com/DiscRoomFan36">My Github</a>
-				<div id="email">FletcherHogarth@gmail.com</div>
-				<a href="https://github.com/DiscRoomFan36/Fletchers_Website">This Page</a>
-			</div>
-		</footer>
-
-
-
-	</body>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <a href="https://github.com/DiscRoomFan36">GitHub</a>
+            <span>FletcherHogarth@gmail.com</span>
+            <a href="https://github.com/DiscRoomFan36/Fletchers_Website">Site Source</a>
+        </div>
+    </footer>
+</body>
 </html>
