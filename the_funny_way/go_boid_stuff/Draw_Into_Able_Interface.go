@@ -157,12 +157,19 @@ func Draw_Text[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, t
 }
 
 
-func Measure_Text(text string, font_size int) {
+func Measure_Text(text string, font_size int) (width int, height int) {
     // CanvasRenderingContext2D.measureText(text)
-
+    //
+    // returns a text measure object
     the_canvas_render_context.js_set_font_and_size(nil, float64(font_size));
 
-    the_canvas_render_context.js_render_context_2d.Call("measureText", text);
+    measure_result := the_canvas_render_context.js_render_context_2d.Call("measureText", text);
+
+    result_width  := measure_result.Get("width").Int();
+    // TODO account for new lines.
+    result_height := font_size;
+
+    return result_width, result_height;
 }
 
 

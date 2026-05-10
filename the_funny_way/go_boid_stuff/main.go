@@ -397,12 +397,35 @@ func Call_function_once_per_frame_forever(function_to_call_every_frame func(delt
 
 
 
+var collidable_texts []Collidable_Text;
+
 func do_one_frame(dt float64) {
     // Clamp dt to something reasonable.
     const REASONABLE_MAX_DT = 0.3;
     dt = min(dt, REASONABLE_MAX_DT);
 
-    // fmt.Println("do_one_frame() (after clamping)", dt);
+    if len(collidable_texts) == 0 {
+        // init collidable text.
+
+        new_collidable_text := func(text string, pos Vec2[int], text_size int) {
+            hello_world_text := Collidable_Text{
+                text,
+                pos,
+                text_size,
+            };
+
+            // Rectangle
+
+            // TODO make a rectangle to collide with boids.
+            // boid_sim.Rectangles
+
+            Append(&collidable_texts, hello_world_text);
+        }
+
+        // TODO be able to say 'center' or something for position.
+        new_collidable_text("Hello world", Vec2[int]{100, 100}, 40);
+        new_collidable_text("Smello Herld", Vec2[int]{100, 200}, 40);
+    }
 
     screen := Begin_Drawing();
     defer End_Drawing();
@@ -412,8 +435,6 @@ func do_one_frame(dt float64) {
     // TODO how do we handle resizes?
     // resize_canvas()
 
-    defer Draw_Text(screen, "Hello World!", 100, 100, 40);
-
     // TODO make boid_sim take a pointer... or do we want the ability for more customization?
     boid_sim.Update_boids(dt, *user_input);
 
@@ -421,4 +442,24 @@ func do_one_frame(dt float64) {
     // Draw_Background(screen, rgba(18, 18, 18, 0.2));
 
     Draw_Everything(screen, &boid_sim, dt, *user_input);
+
+    for _, collidable_text := range collidable_texts {
+        width, height := Measure_Text(collidable_text.text, collidable_text.text_size);
+        Draw_Text(screen, collidable_text.text, collidable_text.pos.x, collidable_text.pos.y, collidable_text.text_size);
+
+        // Draw_Line(screen, text_pos.x, text_pos.y, text_pos.x + width, text_pos.y);
+        Draw_Rectangle_Frame(screen, collidable_text.pos.x, collidable_text.pos.y, width, height, 1, rgb(255, 255, 0));
+    }
 }
+
+
+type Collidable_Text struct {
+    text string;
+    // the position of the text.
+    pos Vec2[int];
+    // aka font_size
+    text_size int;
+
+    // boid_bounding_box *Rectangle;
+}
+
