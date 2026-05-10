@@ -92,9 +92,9 @@ type Boid_simulation struct {
     // Thing a boid can hit, maybe they can see it as well?
 
     // this is the thing the user can make
-    Walls []Line;
+    Walls []Line[Boid_Float];
     // this is the text bounding boxes currently
-    Rectangles []Rectangle;
+    Rectangles []Rectangle[Boid_Float];
 
     // since this is tick based, gotta keep track of the leftover time.
     // when this number if over ONE_TICK_DT, 1 tick happens,
@@ -135,8 +135,8 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
         making_new_wall: false,
 
         // just make a temp thing in the middle of the field.
-        Walls: make([]Line, 0),
-        Rectangles: make([]Rectangle, 0),
+        Walls: make([]Line[Boid_Float], 0),
+        Rectangles: make([]Rectangle[Boid_Float], 0),
 
         spawn_timer: 0,
     };
@@ -151,8 +151,8 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
     return boid_sim;
 }
 
-func (boid_sim *Boid_simulation) bounds_as_rect() Rectangle {
-    return Rectangle{
+func (boid_sim *Boid_simulation) bounds_as_rect() Rectangle[Boid_Float] {
+    return Rectangle[Boid_Float]{
         boid_sim.properties.Margin,
         boid_sim.properties.Margin,
         boid_sim.Width  - 2*boid_sim.properties.Margin,
@@ -800,7 +800,7 @@ func (boid_sim *Boid_simulation) finally_move_and_collide() {
 
 
 // returns if there was a collision, and the closest point on the rectangle.
-func circle_rectangle_collision(x, y, r Boid_Float, rect Rectangle) (bool, Boid_Float, Boid_Float) {
+func circle_rectangle_collision[T Number](x, y, r T, rect Rectangle[T]) (bool, T, T) {
     px := x;
     py := y;
     px = max(px, rect.x);
@@ -891,9 +891,9 @@ func bounce_1d[T Number](x, r, v, w T) T {
 /////////////////////////////////////////////////////////////////////
 
 const MAX_RAYS = 32;
-var static_rays_storage [MAX_RAYS]Line;
+var static_rays_storage [MAX_RAYS]Line[Boid_Float];
 
-func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line {
+func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line[Boid_Float] {
     num_rays    := boid_sim.properties.Num_Boid_Rays;
     cone_radius := boid_sim.properties.Visual_Cone_Angle;
 
@@ -912,7 +912,7 @@ func (boid_sim *Boid_simulation) get_boid_rays(boid Boid) []Line {
         dir.SetMag(boid_sim.properties.Visual_Range); // Visual_Range is the farthest it can see.
 
         pos := boid.Position;
-        ray := Line{pos.x, pos.y, pos.x + dir.x, pos.y + dir.y};
+        ray := Line[Boid_Float]{pos.x, pos.y, pos.x + dir.x, pos.y + dir.y};
 
         result[i] = ray;
     }
@@ -952,7 +952,7 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
     // TODO maybe the ray can just be an ending position?
     // not a line. I construct the line myself...
     // or would that be slower?
-    rays_bounding_box := Axis_Aligned_Bounding_Box{
+    rays_bounding_box := Axis_Aligned_Bounding_Box[Boid_Float]{
         x1: boid.Position.x, y1: boid.Position.y,
         x2: boid.Position.x, y2: boid.Position.y,
     };
@@ -971,13 +971,7 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
     }
 
 
-    for _, line := range boid_sim.Walls {
-        // we don't have a lot of walls, (unless you make your own.)
-        // but the min's and max's in it are probably not good.
-        // maybe fix all the lines before coming into here?
-        line_aabb := line_to_aabb(line);
-        if !aabb_aabb_collision(rays_bounding_box, line_aabb) { continue; }
-
+    run_rays_on_line := func(line Line[Boid_Float]) {
         for i, ray := range rays {
             // god i hope this dose the right thing... (efficiently pass arguments)
             hit, loc := line_line_intersection_l(ray, line);
@@ -991,31 +985,31 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
         }
     }
 
+
+    for _, line := range boid_sim.Walls {
+        // we don't have a lot of walls, (unless you make your own.)
+        // but the min's and max's in it are probably not good.
+        // maybe fix all the lines before coming into here?
+        line_aabb := aabb_from_line(line);
+        if !aabb_aabb_collision(rays_bounding_box, line_aabb) { continue; }
+
+        run_rays_on_line(line);
+    }
+
     for _, rect := range boid_sim.Rectangles {
         // we *Know* that the rectangles have been
         // fixed before calling this function.
         //
         // this skips a lot of min's and max's
-        rect_aabb := rect_to_aabb_unchecked(rect);
+        rect_aabb := aabb_from_rect_unchecked(rect);
         if !aabb_aabb_collision(rays_bounding_box, rect_aabb) { continue; }
 
         // if the ray starts in the rectangle, don't hit the rectangle.
         if point_rect_collision_vr(boid_pos, rect) { continue; }
 
-        for i, ray := range rays {
-            // TODO should we run the aabb again for these guys?
-            lines := rectangle_to_lines(rect.x, rect.y, rect.w, rect.h);
-            // @Copypasta!
-            for _, line := range lines {
-                hit, loc := line_line_intersection_l(ray, line);
-                if !hit { continue; }
-
-                dist_sqr := DistSqr(boid_pos, loc);
-                if dist_sqr < result[i].dist_sqr {
-                    result[i].dist_sqr = dist_sqr;
-                    result[i].hit_point = loc;
-                }
-            }
+        // TODO should we run the aabb again for these guys?
+        for _, line := range rectangle_to_lines(rect.x, rect.y, rect.w, rect.h) {
+            run_rays_on_line(line);
         }
     }
 
@@ -1023,7 +1017,7 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
         // this rectangle could have negative widths and heights...
         bounding_box := boid_sim.bounds_as_rect();
 
-        rect_aabb := rect_to_aabb(bounding_box);
+        rect_aabb := aabb_from_rect(bounding_box);
         if aabb_aabb_collision(rays_bounding_box, rect_aabb) {
 
             // if the start if outside of the bounding box, don't check
@@ -1031,19 +1025,8 @@ func (boid_sim *Boid_simulation) get_ray_results_for_boid_by_colliding_with_ever
             // TODO this will slightly fail if the boid is just
             // outside and facing a different edge.
             if point_rect_collision_vr(boid_pos, bounding_box) {
-
-                for i, ray := range rays {
-                    // @Copypasta!
-                    for _, line := range rectangle_to_lines_r(bounding_box) {
-                        hit, loc := line_line_intersection_l(ray, line);
-                        if !hit { continue; }
-
-                        dist_sqr := DistSqr(boid_pos, loc);
-                        if dist_sqr < result[i].dist_sqr {
-                            result[i].dist_sqr = dist_sqr;
-                            result[i].hit_point = loc;
-                        }
-                    }
+                for _, line := range rectangle_to_lines_r(bounding_box) {
+                    run_rays_on_line(line);
                 }
             }
         }

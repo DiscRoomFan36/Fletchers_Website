@@ -16,7 +16,7 @@ func World_to_boid[T Float](x T) T {
 func World_to_boid_vec[T Float](x Vec2[T]) Vec2[T] {
     return Mult(x, BOID_SCALE);
 }
-func World_to_boid_rect(r Rectangle) Rectangle {
+func World_to_boid_rect[T Float](r Rectangle[T]) Rectangle[T] {
     r.x *= BOID_SCALE;
     r.y *= BOID_SCALE;
     r.w *= BOID_SCALE;

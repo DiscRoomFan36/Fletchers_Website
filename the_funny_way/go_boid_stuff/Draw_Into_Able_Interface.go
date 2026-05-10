@@ -123,7 +123,7 @@ func Draw_Line_v[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable,
 }
 
 // TODO? not here? this file should not know about Boid_Float
-func Draw_Line_l[Drawable Draw_Into_Able[U], U any](drawable Drawable, line Line, thickness Boid_Float, color Color) {
+func Draw_Line_l[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, line Line[T], thickness T, color Color) {
     Draw_Line(drawable, line.x1, line.y1, line.x2, line.y2, thickness, color);
 }
 

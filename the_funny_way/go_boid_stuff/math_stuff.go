@@ -134,25 +134,26 @@ func Unit_Vector_With_Rotation[T Float](theta T) Vec2[T] {
 
 // kinda annoying that I have Boid_Float here, but I really only need these with the floats.
 
-type Rectangle struct {
-    x, y, w, h Boid_Float;
+
+type Rectangle[T Number] struct {
+    x, y, w, h T;
 }
 
-func make_rectangle(x, y, w, h Boid_Float) Rectangle {
-    return Rectangle{x: x, y: y, w: w, h: h};
+func make_rectangle[T Number](x, y, w, h T) Rectangle[T] {
+    return Rectangle[T]{x: x, y: y, w: w, h: h};
 }
 
 // returns x, y, w, h
-func (rect Rectangle) Splat() (Boid_Float, Boid_Float, Boid_Float, Boid_Float) {
+func (rect Rectangle[T]) Splat() (T, T, T, T) {
     return rect.x, rect.y, rect.w, rect.h;
 }
 
 // returns x1, y1, x2, y2
-func (rect Rectangle) Splat_Vec() (Boid_Float, Boid_Float, Boid_Float, Boid_Float) {
+func (rect Rectangle[T]) Splat_Vec() (T, T, T, T) {
     return rect.x, rect.y, rect.x + rect.w, rect.x + rect.h;
 }
 
-func fix_rectangle_so_that_width_and_height_are_positive(r Rectangle) Rectangle {
+func fix_rectangle_so_that_width_and_height_are_positive[T Number](r Rectangle[T]) Rectangle[T] {
     x, y, w, h := r.Splat();
 
     if w < 0 { x = x + w; w = -w; }
@@ -163,24 +164,22 @@ func fix_rectangle_so_that_width_and_height_are_positive(r Rectangle) Rectangle 
 
 
 
-type Line struct {
-    x1, y1, x2, y2 Boid_Float;
+type Line[T Number] struct {
+    x1, y1, x2, y2 T;
 }
 
-func line_from_vec[T Number](_a, _b Vec2[T]) Line {
-    a := Transform_Vec[T, Boid_Float](_a);
-    b := Transform_Vec[T, Boid_Float](_b);
-    return Line{
+func line_from_vec[T Number](a, b Vec2[T]) Line[T] {
+    return Line[T]{
         x1: a.x, y1: a.y,
         x2: b.x, y2: b.y,
     };
 }
 
-func (line Line) to_vec() (Vec2[Boid_Float], Vec2[Boid_Float]) {
-    return Vec2[Boid_Float]{line.x1, line.y1}, Vec2[Boid_Float]{line.x2, line.y2};
+func (line Line[T]) to_vec() (Vec2[T], Vec2[T]) {
+    return Vec2[T]{line.x1, line.y1}, Vec2[T]{line.x2, line.y2};
 }
 
-func Scale(line Line, s Boid_Float) Line {
+func Scale[T Number](line Line[T], s T) Line[T] {
     line.x1 *= s;
     line.y1 *= s;
     line.x2 *= s;
@@ -188,49 +187,50 @@ func Scale(line Line, s Boid_Float) Line {
     return line;
 }
 
-func rectangle_to_lines(x, y, w, h Boid_Float) [4]Line {
-    lines := [4]Line{};
-    lines[0] = Line{x,     y,     x + w, y    };
-    lines[1] = Line{x + w, y,     x + w, y + h};
-    lines[2] = Line{x + w, y + h, x,     y + h};
-    lines[3] = Line{x,     y + h, x,     y    };
+func rectangle_to_lines[T Number](x, y, w, h T) [4]Line[T] {
+    lines := [4]Line[T]{
+        {x,     y,     x + w, y    },
+        {x + w, y,     x + w, y + h},
+        {x + w, y + h, x,     y + h},
+        {x,     y + h, x,     y    },
+    };
     return lines;
 }
 //go:inline
-func rectangle_to_lines_r(r Rectangle) [4]Line { return rectangle_to_lines(r.x, r.y, r.w, r.h); }
+func rectangle_to_lines_r[T Number](r Rectangle[T]) [4]Line[T] { return rectangle_to_lines(r.x, r.y, r.w, r.h); }
 
 
 
 // assert(x1 <= x2 && y1 <= y2);
-type Axis_Aligned_Bounding_Box struct {
-    x1, y1, x2, y2 Boid_Float;
+type Axis_Aligned_Bounding_Box[T Number] struct {
+    x1, y1, x2, y2 T;
 }
 
 //go:inline
-func points_to_aabb(x1, y1, x2, y2 Boid_Float) Axis_Aligned_Bounding_Box {
-    return Axis_Aligned_Bounding_Box{
+func aabb_from_points[T Number](x1, y1, x2, y2 T) Axis_Aligned_Bounding_Box[T] {
+    return Axis_Aligned_Bounding_Box[T]{
         x1: min(x1, x2), y1: min(y1, y2),
         x2: max(x1, x2), y2: max(y1, y2),
     };
 }
 //go:inline
-func points_to_aabb_unchecked(x1, y1, x2, y2 Boid_Float) Axis_Aligned_Bounding_Box {
-    return Axis_Aligned_Bounding_Box{
+func aabb_from_points_unchecked[T Number](x1, y1, x2, y2 T) Axis_Aligned_Bounding_Box[T] {
+    return Axis_Aligned_Bounding_Box[T]{
         x1: x1, y1: y1,
         x2: x2, y2: y2,
     };
 }
 //go:inline
-func line_to_aabb(l Line) Axis_Aligned_Bounding_Box { return points_to_aabb(l.x1, l.y1, l.x2, l.y2); }
+func aabb_from_line[T Number](l Line[T]) Axis_Aligned_Bounding_Box[T] { return aabb_from_points(l.x1, l.y1, l.x2, l.y2); }
 //go:inline
-func rect_to_aabb(r Rectangle) Axis_Aligned_Bounding_Box {
+func aabb_from_rect[T Number](r Rectangle[T]) Axis_Aligned_Bounding_Box[T] {
     x1, y1, x2, y2 := r.x, r.y, r.x + r.w, r.y + r.h;
-    return points_to_aabb(x1, y1, x2, y2);
+    return aabb_from_points(x1, y1, x2, y2);
 }
 //go:inline
-func rect_to_aabb_unchecked(r Rectangle) Axis_Aligned_Bounding_Box {
+func aabb_from_rect_unchecked[T Number](r Rectangle[T]) Axis_Aligned_Bounding_Box[T] {
     x1, y1, x2, y2 := r.x, r.y, r.x + r.w, r.y + r.h;
-    return points_to_aabb_unchecked(x1, y1, x2, y2);
+    return aabb_from_points_unchecked(x1, y1, x2, y2);
 }
 
 
@@ -241,34 +241,72 @@ func rect_to_aabb_unchecked(r Rectangle) Axis_Aligned_Bounding_Box {
 
 
 // point in rect
-func point_rect_collision(x, y, rx, ry, rw, rh Boid_Float) bool {
+func point_rect_collision[T Number](x, y, rx, ry, rw, rh T) bool {
     return (rx <= x && x <= rx + rw) && (ry <= y && y <= ry + rh);
 }
 //go:inline
-func point_rect_collision_vr(p Vec2[Boid_Float], r Rectangle) bool { return point_rect_collision(p.x, p.y, r.x, r.y, r.w, r.h); }
+func point_rect_collision_vr[T Number](p Vec2[T], r Rectangle[T]) bool { return point_rect_collision(p.x, p.y, r.x, r.y, r.w, r.h); }
 
 
 // returns weather it hit, and the location of the hit.
-func line_line_intersection(x1, y1, x2, y2, x3, y3, x4, y4 Boid_Float) (bool, Vec2[Boid_Float]) {
+// 
+// TODO accept all numbers? gotta refactor.
+func line_line_intersection[T Number](x1, y1, x2, y2, x3, y3, x4, y4 T) (bool, Vec2[T]) {
+
+    /*
     // calculate the distance to intersection point
     uA := ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
     uB := ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
 
     // TODO faster to always calc the loc?
     if (0 <= uA && uA <= 1) && (0 <= uB && uB <= 1) {
-        loc := Vec2[Boid_Float]{
+        loc := Vec2[T]{
             x1 + (uA * (x2-x1)),
             y1 + (uA * (y2-y1)),
         };
         return true, loc;
     }
-    return false, Vec2[Boid_Float]{};
+    return false, Vec2[T]{};
+    */
+
+
+
+    // calculate the distance to intersection point
+    uA_numerator   := ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3));
+    uA_denominator := ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+    uB_numerator   := ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3));
+    uB_denominator := ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+    // this might not handle the case where 'denominator' is zero...
+    frac_is_0_to_1 := func(numerator, denominator T) bool {
+        // check less than 0,
+        //
+        // if one is negative, and the other isn't, its less than zero.
+        if (numerator < 0) != (denominator < 0) { return false; }
+
+        // check if greater than 1
+        if Abs(numerator) > Abs(denominator) { return false; }
+
+        return true;
+    }
+
+    // TODO faster to always calc the loc?
+    if frac_is_0_to_1(uA_numerator, uA_denominator) && frac_is_0_to_1(uB_numerator, uB_denominator) {
+        // yes these are suppose'd to both be uA.
+        loc := Vec2[T]{
+            x1 + (uA_numerator * (x2-x1)) / uA_denominator,
+            y1 + (uA_numerator * (y2-y1)) / uA_denominator,
+        };
+        return true, loc;
+    }
+    return false, Vec2[T]{};
 }
 //go:inline
-func line_line_intersection_l(l1, l2 Line) (bool, Vec2[Boid_Float]) { return line_line_intersection(l1.x1, l1.y1, l1.x2, l1.y2, l2.x1, l2.y1, l2.x2, l2.y2); }
+func line_line_intersection_l[T Number](l1, l2 Line[T]) (bool, Vec2[T]) { return line_line_intersection(l1.x1, l1.y1, l1.x2, l1.y2, l2.x1, l2.y1, l2.x2, l2.y2); }
 
 
-func aabb_aabb_collision(a, b Axis_Aligned_Bounding_Box) bool {
+func aabb_aabb_collision[T Number](a, b Axis_Aligned_Bounding_Box[T]) bool {
     return (a.x2 >= b.x1) && (a.x1 <= b.x2) && (a.y2 >= b.y1) && (a.y1 <= b.y2);
 }
 
