@@ -8,6 +8,10 @@ import (
 
 // gonna treat this like a game engine.
 
+// Fletchers Lord Game Engine.
+// aka FLord Game Engine
+
+
 //
 // every type that is Draw_Into_Able should be passed by pointer.
 // (not that interfaces make it easy.)

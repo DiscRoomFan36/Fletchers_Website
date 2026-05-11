@@ -388,7 +388,7 @@ func ease_in_out_quint[T Float](x T) T {
 }
 
 
-func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Array[T], scale T) {
+func draw_spacial_array_into_image[T Has_Position[U], U Number](screen *Screen, sp_array Spacial_Array[T, U], scale U) {
 
     min_x, min_y := sp_array.Min_x, sp_array.Min_y;
     max_x, max_y := sp_array.Max_x, sp_array.Max_y;
@@ -397,11 +397,11 @@ func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Ar
     w, h := sp_array.Max_x-sp_array.Min_x, sp_array.Max_y-sp_array.Min_y;
 
     // how big the boxes are.
-    step_x, step_y := w/T(sp_array.Boxes_wide), h/T(sp_array.Boxes_high);
+    step_x, step_y := w/U(sp_array.Boxes_wide), h/U(sp_array.Boxes_high);
 
     { // draw the outsides.
 
-        bounding_box := [4]Vec2[T]{
+        bounding_box := [4]Vec2[U]{
             {x: min_x, y: min_y},
             {x: max_x, y: min_y},
             {x: max_x, y: max_y},
@@ -425,10 +425,10 @@ func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Ar
 
         // Vertical
         for i := 1; i < sp_array.Boxes_wide; i++ {
-            x := sp_array.Min_x + step_x*T(i);
+            x := sp_array.Min_x + step_x*U(i);
 
-            p1 := Vec2[T]{x: x, y: sp_array.Min_y};
-            p2 := Vec2[T]{x: x, y: sp_array.Max_y};
+            p1 := Vec2[U]{x: x, y: sp_array.Min_y};
+            p2 := Vec2[U]{x: x, y: sp_array.Max_y};
 
             p1.Mult(scale);
             p2.Mult(scale);
@@ -438,10 +438,10 @@ func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Ar
 
         // Horizontal
         for j := 1; j < sp_array.Boxes_high; j++ {
-            y := sp_array.Min_y + step_y*T(j);
+            y := sp_array.Min_y + step_y*U(j);
 
-            p1 := Vec2[T]{x: sp_array.Min_x, y: y};
-            p2 := Vec2[T]{x: sp_array.Max_x, y: y};
+            p1 := Vec2[U]{x: sp_array.Min_x, y: y};
+            p2 := Vec2[U]{x: sp_array.Max_x, y: y};
 
             p1.Mult(scale);
             p2.Mult(scale);
@@ -454,8 +454,8 @@ func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Ar
         for j := range sp_array.Boxes_high {
             for i := range sp_array.Boxes_wide {
                 // where we are,
-                x := sp_array.Min_x + step_x*T(i);
-                y := sp_array.Min_y + step_y*T(j);
+                x := sp_array.Min_x + step_x*U(i);
+                y := sp_array.Min_y + step_y*U(j);
 
                 // if there is some points in the box, show a color.
                 box := &sp_array.Boxes[j*sp_array.Boxes_wide+i];
@@ -466,7 +466,7 @@ func draw_spacial_array_into_image[T Number](screen *Screen, sp_array Spacial_Ar
                 const start_color_number = 230;
                 const end_color_number   = 360;
 
-                fill_amount := float32(box.Count) / BOX_SIZE;
+                fill_amount := float32(box.Count) / SPACIAL_ARRAY_BOX_SIZE;
                 fill_amount = min(fill_amount, 1);
 
                 blended := Lerp(start_color_number, end_color_number, fill_amount);

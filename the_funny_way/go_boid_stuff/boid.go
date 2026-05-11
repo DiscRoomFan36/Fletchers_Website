@@ -54,6 +54,10 @@ type Dead_Boid_Info struct {
     random_factor float64;
 }
 
+func (boid Boid) Get_Position() Vec2[Boid_Float] {
+    return boid.Position;
+}
+
 type Boid_simulation struct {
     // all the settable properties, may contain stuff not
     // directly related to the boid simulation
@@ -75,7 +79,7 @@ type Boid_simulation struct {
     Width, Height Boid_Float;
 
     // for fast proximity detection.
-    Spacial_array Spacial_Array[Boid_Float];
+    Spacial_array Spacial_Array[Boid, Boid_Float];
 
     // used for random draw forces
     random_generators [NUM_RANDOM_GENERATORS]Random_Generator;
@@ -128,7 +132,7 @@ func New_boid_simulation(width, height Boid_Float) Boid_simulation {
         Width:  width,
         Height: height,
 
-        Spacial_array: New_Spacial_Array[Boid_Float](),
+        Spacial_array: New_Spacial_Array[Boid, Boid_Float](),
 
         Click_Positions_And_Times: make([]Click_Position_And_Time, 0, 32),
 
@@ -318,11 +322,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
         // Clear out previous uses.
         boid_sim.Spacial_array.Clear();
 
-        // TODO make this just how we store boid positions or something.
-        boid_positions := make([]Vec2[Boid_Float], len(boid_sim.Boids));
-        for i, b := range boid_sim.Boids { boid_positions[i] = b.Position; }
-
-        boid_sim.Spacial_array.Append_points(boid_positions, 0, 0, boid_sim.Width, boid_sim.Height);
+        boid_sim.Spacial_array.Append_array_of_things(boid_sim.Boids, 0, 0, boid_sim.Width, boid_sim.Height);
     }
 
 
@@ -343,7 +343,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
     //   Separation, Alignment, Cohesion
     // ------------------------------------
     for i := range len(boid_sim.Boids) {
-        this_boid := boid_sim.Boids[i];
+        this_boid := &boid_sim.Boids[i];
 
         // Separation
         sep := Vec2[Boid_Float]{};
@@ -353,9 +353,9 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
         coh := Vec2[Boid_Float]{};
 
         num_close_boids := 0;
-        for other_boid_index, near_pos := range boid_sim.Spacial_array.Iter_Over_Near(this_boid.Position, boid_sim.properties.Visual_Range) {
+        for other_boid, near_pos := range boid_sim.Spacial_array.Iter_Over_Near(this_boid.Position, boid_sim.properties.Visual_Range) {
             // don't count it if it sees itself.
-            if int(other_boid_index) == i { continue; }
+            if other_boid == this_boid { continue; }
 
             num_close_boids += 1;
 
@@ -377,7 +377,7 @@ func (boid_sim *Boid_simulation) do_one_tick(user_input User_Input) {
             }
 
             // make the velocity's match.
-            align.Add(boid_sim.Boids[other_boid_index].Velocity);
+            align.Add(other_boid.Velocity);
             // go to the center of the pack. we subtract this_boid.position later
             coh.Add(near_pos);
         }
