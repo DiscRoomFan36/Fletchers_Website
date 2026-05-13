@@ -16,15 +16,14 @@ const BOID_DIMENSION_FACTOR = 80;
 const BOID_DEFAULT_BOUNDS_WIDTH  = 16 * BOID_DIMENSION_FACTOR;
 const BOID_DEFAULT_BOUNDS_HEIGHT =  9 * BOID_DIMENSION_FACTOR;
 
-
-var the_canvas_render_context Js_Render_Context;
-var the_back_buffer Screen;
-
+// want to differentiate these 2 at some point.
+const SCREEN_WIDTH  = BOID_DEFAULT_BOUNDS_WIDTH;
+const SCREEN_HEIGHT = BOID_DEFAULT_BOUNDS_HEIGHT;
 
 func main() {
-    fmt.Println("Hello, WebAssembly! 3");
+    fmt.Println("Hello, Console!");
 
-    Init_Engine(BOID_DEFAULT_BOUNDS_WIDTH, BOID_DEFAULT_BOUNDS_HEIGHT, rgb(37, 37, 37));
+    Init_Engine(SCREEN_WIDTH, SCREEN_HEIGHT, rgb(37, 37, 37));
 
 
     all_the_properties = get_default_properties();
@@ -35,6 +34,10 @@ func main() {
     Call_function_once_per_frame_forever(do_one_frame);
 }
 
+
+// this is engine stuff, maybe put into FLord_Engine_Context?
+var the_canvas_render_context Js_Render_Context;
+var the_back_buffer Screen;
 
 //
 // Init the "game" Engine.
@@ -60,13 +63,13 @@ func Init_Engine(canvas_width, canvas_height int, js_background_color Color) {
         js_color_string := js_color_string_from_color(js_background_color);
 
         // document.body.style.background = color;
-        body_style := js.Global().Get("document").Get("body").Get("style");
-        body_style.Set("background", js_color_string);
+        body := js.Global().Get("document").Get("body");
+        body.Get("style").Set("background", js_color_string);
     }
 
     // create the main canvas.
     canvas := js.Global().Get("document").Call("createElement", "canvas");
-    {
+    { // set width and height, and do some css styling.
         canvas.Set("width" , canvas_width);
         canvas.Set("height", canvas_height);
 
@@ -107,16 +110,14 @@ func Init_Engine(canvas_width, canvas_height int, js_background_color Color) {
         }
     }
 
-    // but the canvas on the screen.
+    // put the canvas on the screen.
     js.Global().Get("document").Get("body").Call("appendChild", canvas);
 
-    // fmt.Println("canvas", js_value_to_string(canvas));
     the_canvas_render_context = New_Js_Render_Context(canvas);
     {
         // make a new offscreen canvas.
         width, height := the_canvas_render_context.width, the_canvas_render_context.height;
         offscreen_canvas := js.Global().Get("OffscreenCanvas").New(width, height);
-        // fmt.Println("offscreen canvas", js_value_to_string(offscreen_canvas));
         offscreen_render_context := New_Js_Render_Context(offscreen_canvas);
 
         the_back_buffer = Screen{
@@ -125,10 +126,6 @@ func Init_Engine(canvas_width, canvas_height int, js_background_color Color) {
     }
 
     setup_input_handling(the_canvas_render_context.the_canvas);
-
-    // div := js.Global().Get("document").Call("createElement", "div");
-    // div.Set("innerHTML", fmt.Sprintf("<pre>%s</pre>", js_value_to_string(js.Global())));
-    // js.Global().Get("document").Get("body").Call("appendChild", div);
 }
 
 func Begin_Drawing() *Screen {
@@ -139,28 +136,6 @@ func End_Drawing() {
     //
     // draw the screen into the canvas that is on the html page
     //
-
-
-    // different_sizes := false;
-    // different_sizes = different_sizes || the_canvas_render_context.width  != the_back_buffer.width;
-    // different_sizes = different_sizes || the_canvas_render_context.height != the_back_buffer.height;
-
-    // if different_sizes {
-    //     panic("the canvas and the offscreen canvas are different sizes.");
-    // }
-
-    // // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
-    // //
-    // // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
-    // the_canvas_render_context.js_render_context_2d.Call(
-    //     "drawImage",
-    //     the_back_buffer.Js_Render_Context.the_canvas,
-    //     // aka draw the whole thing, stretch if needed.
-    //     0, 0,
-    //     // 0, 0, offscreen_render_context .width, offscreen_render_context .height,
-    //     // 0, 0, the_canvas_render_context.width, the_canvas_render_context.height,
-    // );
-
     the_canvas_render_context.Draw_Into_Self(&the_back_buffer.Js_Render_Context, 0, 0);
 }
 
@@ -168,15 +143,6 @@ func End_Drawing() {
 
 
 func setup_input_handling(canvas_element js.Value) {
-
-    // every time i look at thing, reminds me how much golang's enums suck.
-    type Js_Mouse_Button_Number int;
-    const (
-        Left   Js_Mouse_Button_Number = 0;
-        Middle Js_Mouse_Button_Number = 1;
-        Right  Js_Mouse_Button_Number = 2;
-    );
-
 
     // because this is on the canvas, we will only get events when the mouse is on the canvas.
     canvas_element.Call("addEventListener", "mousemove", js.FuncOf(
@@ -210,6 +176,15 @@ func setup_input_handling(canvas_element js.Value) {
             return nil;
         },
     ));
+
+
+    // every time i look at this thing, reminds me how much golang's enums suck.
+    type Js_Mouse_Button_Number int;
+    const (
+        Left   Js_Mouse_Button_Number = 0;
+        Middle Js_Mouse_Button_Number = 1;
+        Right  Js_Mouse_Button_Number = 2;
+    );
 
     canvas_element.Call("addEventListener", "mousedown", js.FuncOf(
         func(this js.Value, args []js.Value) any {
@@ -397,34 +372,66 @@ func Call_function_once_per_frame_forever(function_to_call_every_frame func(delt
 
 
 
+// should make some kind of context...
+//
+// // stuff that my entire application whats to know about, or stuff that lives at global scope, so i know where everything is.
+// type Game_Context struct {
+//     collidable_texts []Collidable_Text;
+// }
+//
 var collidable_texts []Collidable_Text;
+
+func init_collidable_texts() {
+    new_collidable_text := func(text string, center_pos Vec2[int], font_size int, text_color Color) {
+        width, height := Measure_Text(text, font_size);
+
+        top_left_pos := Vec2[int]{
+            center_pos.x - width/2,
+            center_pos.y - height/2,
+        };
+
+        bounding_rect := make_rectangle(top_left_pos.x, top_left_pos.y, width, height);
+        bounding_rect_float := Transform_Rect[int, Boid_Float](bounding_rect);
+
+        const PADDING = 10;
+        bounding_rect_float.x -= PADDING;
+        bounding_rect_float.y -= PADDING;
+        bounding_rect_float.w += PADDING*2;
+        bounding_rect_float.h += PADDING*2;
+
+        new_collidable_text := Collidable_Text{
+            text: text,
+            pos: top_left_pos,
+            font_size: font_size,
+            text_color: text_color,
+
+            bounding_rec: bounding_rect_float,
+        };
+
+        // @Context puts stuff straight into the boid sim...
+        Append(&boid_sim.Rectangles, bounding_rect_float);
+
+        Append(&collidable_texts, new_collidable_text);
+    }
+
+    new_collidable_text(
+        "Hello world",
+        Vec2[int]{BOID_DEFAULT_BOUNDS_WIDTH/2, BOID_DEFAULT_BOUNDS_HEIGHT/2},
+        40,
+        rgb(255, 141, 64),
+    );
+    // new_collidable_text("mellow Herald", Vec2[int]{100, 200}, 40);
+}
 
 func do_one_frame(dt float64) {
     // Clamp dt to something reasonable.
     const REASONABLE_MAX_DT = 0.3;
     dt = min(dt, REASONABLE_MAX_DT);
 
+    // init'ing this stuff here. probably should do this in main()
     if len(collidable_texts) == 0 {
         // init collidable text.
-
-        new_collidable_text := func(text string, pos Vec2[int], text_size int) {
-            hello_world_text := Collidable_Text{
-                text,
-                pos,
-                text_size,
-            };
-
-            // Rectangle
-
-            // TODO make a rectangle to collide with boids.
-            // boid_sim.Rectangles
-
-            Append(&collidable_texts, hello_world_text);
-        }
-
-        // TODO be able to say 'center' or something for position.
-        new_collidable_text("Hello world", Vec2[int]{100, 100}, 40);
-        new_collidable_text("Smello Herld", Vec2[int]{100, 200}, 40);
+        init_collidable_texts();
     }
 
     screen := Begin_Drawing();
@@ -443,14 +450,16 @@ func do_one_frame(dt float64) {
 
     Draw_Everything(screen, &boid_sim, dt, *user_input);
 
+    // TODO put this in Draw_Everything()
     for _, collidable_text := range collidable_texts {
-        width, height := Measure_Text(collidable_text.text, collidable_text.text_size);
-        Draw_Text(screen, collidable_text.text, collidable_text.pos.x, collidable_text.pos.y, collidable_text.text_size);
+        Draw_Text(screen, collidable_text.text, collidable_text.pos.x, collidable_text.pos.y, collidable_text.font_size, collidable_text.text_color);
 
-        // Draw_Line(screen, text_pos.x, text_pos.y, text_pos.x + width, text_pos.y);
-        Draw_Rectangle_Frame(screen, collidable_text.pos.x, collidable_text.pos.y, width, height, 1, rgb(255, 255, 0));
+        if boid_sim.properties.Draw_Rectangles {
+            Draw_Rectangle_Frame_r(screen, collidable_text.bounding_rec, 1, rgb(255, 255, 0));
+        }
     }
 }
+
 
 
 type Collidable_Text struct {
@@ -458,8 +467,13 @@ type Collidable_Text struct {
     // the position of the text.
     pos Vec2[int];
     // aka font_size
-    text_size int;
+    font_size int;
+    text_color Color;
 
-    // boid_bounding_box *Rectangle;
+    // what the boids interact with.
+    //
+    // for now its not really possible to move this...
+    // maybe use the Pointer_Stable_Array to be able to change this.
+    bounding_rec Rectangle[Boid_Float];
 }
 

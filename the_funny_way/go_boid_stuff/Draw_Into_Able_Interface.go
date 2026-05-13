@@ -11,7 +11,6 @@ import (
 // Fletchers Lord Game Engine.
 // aka FLord Game Engine
 
-
 //
 // every type that is Draw_Into_Able should be passed by pointer.
 // (not that interfaces make it easy.)
@@ -35,7 +34,7 @@ type Draw_Into_Able[Other_Drawable any] interface {
     Draw_Ring(x, y, r1, r2 float32, color Color);
 
     // TODO a version where you can specify a font.
-    Draw_Text(text string, x, y int, font_size int);
+    Draw_Text(text string, x, y int, font_size int, color Color);
 
     // draw entire drawable thing into itself at some position.
     //
@@ -126,7 +125,6 @@ func Draw_Line_v[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable,
     Draw_Line(drawable, p1.x, p1.y, p2.x, p2.y, thickness, color);
 }
 
-// TODO? not here? this file should not know about Boid_Float
 func Draw_Line_l[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, line Line[T], thickness T, color Color) {
     Draw_Line(drawable, line.x1, line.y1, line.x2, line.y2, thickness, color);
 }
@@ -141,6 +139,10 @@ func Draw_Rectangle_Frame[Drawable Draw_Into_Able[U], U any, T Number](drawable 
     drawable.Draw_Rectangle_Frame(x_f32, y_f32, width_f32, height_f32, thickness_f32, color);
 }
 
+func Draw_Rectangle_Frame_r[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, rectangle Rectangle[T], thickness T, color Color) {
+    Draw_Rectangle_Frame(drawable, rectangle.x, rectangle.y, rectangle.w, rectangle.h, thickness, color);
+}
+
 func Draw_Ring[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, x, y, r1, r2 T, color Color) {
     x_f32  := float32(x);
     y_f32  := float32(y);
@@ -152,12 +154,12 @@ func Draw_Ring[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, x
 
 
 
-func Draw_Text[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, text string, x, y T, text_size T) {
+func Draw_Text[Drawable Draw_Into_Able[U], U any, T Number](drawable Drawable, text string, x, y T, text_size T, color Color) {
     x_int         := int(x);
     y_int         := int(y);
     text_size_int := int(text_size);
 
-    drawable.Draw_Text(text, x_int, y_int, text_size_int);
+    drawable.Draw_Text(text, x_int, y_int, text_size_int, color);
 }
 
 
@@ -489,26 +491,24 @@ func (js_render_context *Js_Render_Context) Draw_Ring(x, y, r1, r2 float32, colo
     js_render_context.js_draw_ring(x_f64, y_f64, r1_f64, r2_f64);
 }
 
-func (js_render_context *Js_Render_Context) Draw_Text(text string, x, y int, font_size int) {
+func (js_render_context *Js_Render_Context) Draw_Text(text string, x, y int, font_size int, color Color) {
     x_f64         := float64(x);
     y_f64         := float64(y);
     font_size_f64 := float64(font_size);
 
-    js_render_context.set_color(rgb(255, 0, 0));
+    js_render_context.set_color(color);
     js_render_context.js_draw_text(text, x_f64, y_f64, font_size_f64);
 }
 
 func (js_render_context *Js_Render_Context) Draw_Into_Self(other_js_drawable *Js_Render_Context, x, y float32) {
-
-    // // gonna type assert this for now, will have to figure out a better method later.
-    // other_js_drawable := other_drawable.(*Screen);
 
     different_sizes := false;
     different_sizes = different_sizes || the_canvas_render_context.width  != the_back_buffer.width;
     different_sizes = different_sizes || the_canvas_render_context.height != the_back_buffer.height;
 
     if different_sizes {
-        panic("the two render contex's are different sizes.");
+        // panic for now.
+        panic("the two render context's are different sizes.");
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage

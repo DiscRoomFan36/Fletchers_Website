@@ -153,6 +153,15 @@ func (rect Rectangle[T]) Splat_Vec() (T, T, T, T) {
     return rect.x, rect.y, rect.x + rect.w, rect.x + rect.h;
 }
 
+func Transform_Rect[T Number, U Number](rect Rectangle[T]) Rectangle[U] {
+    return Rectangle[U]{
+        x: U(rect.x),
+        y: U(rect.y),
+        w: U(rect.w),
+        h: U(rect.h),
+    };
+}
+
 func fix_rectangle_so_that_width_and_height_are_positive[T Number](r Rectangle[T]) Rectangle[T] {
     x, y, w, h := r.Splat();
 
