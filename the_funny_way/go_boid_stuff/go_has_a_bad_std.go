@@ -23,6 +23,8 @@ func Remove_Ordered[T any](slice *[]T, index int) {
 
 // why would i even want to use append?
 //
+// returns pointer to element you just appended.
+//
 // NOTE TO IDIOTS LIKE MYSELF,
 // pointers are invalid after calling this function.
 // This is not a pointer stable array.
@@ -30,8 +32,9 @@ func Remove_Ordered[T any](slice *[]T, index int) {
 // ...^ that would be fun to make...
 // ...don't have a pressing need for one of those though...
 // ...Also i hate the iterating thing in this language...
-func Append[T any](slice *[]T, elems ...T) {
+func Append[T any](slice *[]T, elems ...T) *T {
     *slice = append(*slice, elems...);
+    return &(*slice)[len(*slice)-1];
 }
 
 func Pop[T any](slice *[]T) T {
