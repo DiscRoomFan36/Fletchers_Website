@@ -1,48 +1,42 @@
 
+# TODO replace with build.go or something.
 
 GO_COMPILER ?= go # tinygo
 
-# I would put this on the serve rule, but it doesn't
-# work if its part of a thread? for some reason?
-#
-# I swear im gonna move to nob.h at some point.
-full_watch: boid.wasm supply_wasm_exec
-	make -j 3 npm-watch serve go-watch
+# this makes a page for both the boids and the personal
+# website. although the website doesn't actually need
+# the boids to be served.
+full_watch_website_and_boids: boid.wasm supply_wasm_exec
+	make -j 3 watch_go_files serve_boid serve_personal_website
+
+# this one just makes the website.
+serve_and_hotreload_website: boid.wasm supply_wasm_exec
+	make -j 2 watch_go_files serve_personal_website
 
 
 boid.wasm:
-	GOOS=js GOARCH=wasm $(GO_COMPILER) build -C ./go_boid_stuff/ -o ../dist/boid.wasm
+	GOOS=js GOARCH=wasm $(GO_COMPILER) build -C ./boid_sim/go_boid_stuff/ -o ../dist/boid.wasm
 
 boid.wat:
-	wasm2wat dist/boid.wasm > dist/boid.wat
+	wasm2wat ./boid_sim/dist/boid.wasm > ./boid_sim/dist/boid.wat
 
 
-npm_install:
-	npm install
+watch_go_files: boid.wasm
+	./boid_sim/watch_script.sh
 
-npm-watch: boid.wasm npm_install
-	npm run watch
 
 # TODO we might as well just get these from there respective compilers
 # TODO this is non exhaustive.
 supply_wasm_exec:
 	if [ $(GO_COMPILER) = go ]; then                             \
-		ln -fsr ./web_src/wasm_exec.js      ./dist/wasm_exec.js; \
+		ln -fsr ./boid_sim/wasm_exec.js      ./boid_sim/dist/wasm_exec.js; 		 \
 	else                                                         \
-		ln -fsr ./web_src/wasm_exec_tiny.js ./dist/wasm_exec.js; \
+		ln -fsr ./boid_sim/wasm_exec_tiny.js ./boid_sim/wasm_exec.js; \
 	fi
 
-serve:
-	npm run serve
-# 	this cuts down on the python dependency.
-# 	python3 -m http.server 8080
 
-go-watch: npm_install
-#   we rely on npm to have nodemon
-#   this dose mean we cant have more than these 2 compilers for now...
-#   i blame npm
-	if [ $(GO_COMPILER) = go ]; then            \
-		npm run "watch_go_boid_stuff go";       \
-	else                                        \
-		npm run "watch_go_boid_stuff tinygo";   \
-	fi
+serve_boid:
+	python3 -m http.server 8080 --directory ./boid_sim
+
+serve_personal_website:
+	python3 -m http.server 8081

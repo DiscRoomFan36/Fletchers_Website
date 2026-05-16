@@ -4,6 +4,8 @@ Check out the github site thing to see them in action
 
 ## Requirements for Development
 
+**TODO redo this**
+
 * **make** for make reasons, tried to get rid of this dependency, but I realized using npm was much worse. happy to take make dependency over trying again with npm
 * A **Go** Compiler
 * **npm** for building and watching typescript, also the web server

@@ -59,9 +59,21 @@ DONE
 * make proper profiling tools... nah, just trust that the crome profiler.
 * speed up the simulation, would like at least 3000 boids at once, the slow part is the rendering. it's fast enough now, if i really wanted more boids, i would convert the rendering to js calls, but maybe later.
 * make boids explode when de-spawned
+* have the go_boid_stuff/image use actual canvas stuff, for speed. would require a lot of refactoring on the typescript side.
 
 
 NEXT
+
+* make the personal website look cool.
+* use better words on the website.
+* push to github, finally.
+
+* put sudoku on website as well. i know the framework now. iframes for the win.
+
+* make the FLord engine into a module.
+
+* have more FLord engine demo's, (bunny-mark)
+
 
 * maybe instead of all that collision code, i can just explode the boids if they hit something? 
 
@@ -76,8 +88,7 @@ NEXT
 * add mouse delta to input, test if it works.
 
 * make the rendering a camera like, so you can scroll and what not.
-* draw an actual image instead of the triangles? <- would require major typescript rendering, i don't think wasm has got that speed.
-* have the go_boid_stuff/image use actual canvas stuff, for speed. would require a lot of refactoring on the typescript side.
+* draw an actual image instead of the triangles?
 
 * unify the collision stuff. currently 3 different systems. maybe make a collisional interface?
 * boid.go: // TODO calculate position at moment of collision

@@ -1,94 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Fletcher Moloney | Boid Zoo</title>
-    <link rel="stylesheet" href="./web_src/css.css">
-    <script src="./dist/wasm_exec.js" defer></script>
-    <script src="./dist/build.js" defer></script>
-</head>
-<body>
-    <header class="site-header">
-        <div class="header-inner">
-            <p class="kicker">Portfolio Experiment</p>
-            <h1>Fletcher Moloney</h1>
-            <p class="subtitle">Boids, Go, TypeScript, and strange ideas that ship.</p>
-        </div>
-    </header>
+	<head>
+		<meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Fletcher Moloney</title>
+        <!-- TODO replace this, Maybe a stylized 'F'? -->
+		<link rel="icon" type="image/png" href="./personal_website_web_stuff/icon.png" />
+		<link rel="stylesheet" href="./personal_website_web_stuff/css.css" />
+	</head>
 
-    <main class="page-main">
-        <section class="section intro-panel">
-            <h2>Welcome</h2>
-            <p>
-                This is a rebuilt front page with cleaner structure and a dedicated area for the boid simulation.
-                Replace any of this copy with your real content when you are ready.
-            </p>
+    <body>
+        <header class="site-header">
+            <div class="site-header-content">
+                <h1>Fletcher Moloney</h1>
+                <!-- TODO is this a good subtitle? -->
+                <p class="subtitle">
+                    "I wish there was a better programming language than C, but no one seems to be making any." - Myself (2026)
+                </p>
+            </div>
+        </header>
+
+        <section class="section self-reflection-section">
+            <div class="section-headline self-reflection">
+                <h2>Self Reflection</h2>
+                <p>A look into my deepest darkest fears</p>
+            </div>
+
+            <!-- TODO everything here. -->
+
+            <div>
+                A Fear of C++, its just got way to many features
+
+                like what even is a UFO operator? who are they kidding?
+            </div>
+
+            <div>
+                A Fear of dependencies,
+
+                I can explain the dependency chan of everything on this website, (with the exception of emscripten, and raylib), because I made everything.
+            </div>
         </section>
 
         <section class="section boid-section">
-            <div class="boid-headline">
-                <h2>Boid Playground</h2>
-                <p>Use left click to summon boids. Use middle click to place walls.</p>
+            <div class="section-headline boid-headline">
+                <h2>Boid Simulation</h2>
+                <p>In my weird wasm "game" engine, no javascript, only terrible golang -> wasm bindings. (its worse than you think)</p>
             </div>
 
-            <div class="boid-layout">
-                <aside class="settings-panel">
-                    <details open>
-                        <summary>Simulation Settings</summary>
-                        <div id="slideContainer"></div>
-                    </details>
-                </aside>
+            <iframe class="boid-iframe" src="./boid_sim/index.html" title="Boid Simulation" width="800" height="450" scrolling="no">
+                Your browser is not showing you a cool Boid simulation right now, because the &lt;iframe&gt; is broken.
+            </iframe>
+        </section>
 
-                <div id="boid_container" class="boid-frame">
-                    <canvas id="boid_canvas" aria-label="Boid simulation canvas"></canvas>
 
-                    <div class="boid-overlay" aria-hidden="true">
-                        <p class="collide">60 FPS target</p>
-                        <p class="collide">WASM render pipeline</p>
-                        <p class="collide">Interactive obstacles</p>
-                    </div>
-                </div>
+        <section>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+            <p> space filler </p>
+        </section>
+
+
+        <footer class="site-footer">
+            <div class="footer-inner">
+                <a href="https://github.com/DiscRoomFan36">GitHub</a>
+                <span>FletcherHogarth@gmail.com</span>
+                <a href="https://github.com/DiscRoomFan36/Fletchers_Website">Site Source</a>
             </div>
-        </section>
-
-        <section class="section content-grid">
-            <article>
-                <h3>Current Focus</h3>
-                <p>
-                    Building graphics and simulation projects that stay readable, hackable, and fun to tune.
-                </p>
-            </article>
-            <article>
-                <h3>Project Notes</h3>
-                <p>
-                    This slot is placeholder text. Add links, implementation details, or performance observations.
-                </p>
-            </article>
-            <article>
-                <h3>Future Section</h3>
-                <p>
-                    Another placeholder block for writing logs, updates, and weird experiments over time.
-                </p>
-            </article>
-        </section>
-
-        <section class="section">
-            <h2>Dummy Text</h2>
-            <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer facilisis, sapien ac dignissim
-                aliquet, mauris augue ultrices magna, vel viverra lectus risus vel est. Curabitur posuere lacus a
-                commodo luctus.
-            </p>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="footer-inner">
-            <a href="https://github.com/DiscRoomFan36">GitHub</a>
-            <span>FletcherHogarth@gmail.com</span>
-            <a href="https://github.com/DiscRoomFan36/Fletchers_Website">Site Source</a>
-        </div>
-    </footer>
-</body>
+        </footer>
+    </body>
 </html>

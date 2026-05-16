@@ -1,6 +1,2 @@
-package-lock.json
-node_modules/
 
-web_src/fonts/unused/
-
-dist/*.wat
+the_funny_way/dist/*.wat
