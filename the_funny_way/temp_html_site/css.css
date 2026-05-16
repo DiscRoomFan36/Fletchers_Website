@@ -1,0 +1,83 @@
+
+@font-face {
+    font-family: 'Iosevka';
+    /* this is not gonna work until i flip the script. *
+    /* aka make this the real website. */
+    src: url('fonts/iosevka-light.ttf');
+}
+
+
+/* variables */
+/* :root {
+} */
+
+body {
+    background-color: #2a3352;
+
+    font-family: 'Iosevka', serif;
+
+    color: rgb(206, 206, 206);
+    text-shadow: 2px 2px 4px rgb(36, 36, 36);
+
+    /* doing this so the header is connected to the top and bottom of the page. */
+    margin: 0;
+}
+
+/* this is just for the boid sim for now. */
+/* but in the future, plan to have more iframes, */
+/* like the sudoku one. */
+iframe {
+    border: none;
+}
+
+
+.site-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    /* between my name and subtitle */
+    gap: 0.1rem;
+
+    /* padding around the outside of the content. */
+    padding: 0.6rem 1rem;
+
+
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15));
+
+    /*  */
+    text-align: center;
+}
+
+.site-header-context {
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+
+.site-header h1 {
+    /* make my name a bit bigger */
+    font-size: 2.4rem;
+}
+
+
+
+
+
+
+
+
+body {
+    /*
+        the following css code is ai generated. remove it so i can say i use no ai.
+    */
+
+    /* layered repeating pattern: small triangle tile + subtle diagonal wash */
+    background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><polygon points='6,2 10,10 2,10' fill='%23ffffff' opacity='0.05'/></svg>"),
+        linear-gradient(135deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    /* keep triangle visual size the same by using a slightly larger tile canvas (28px) with the small polygon coords */
+    background-size: 28px 28px, auto;
+    background-repeat: repeat;
+    background-attachment: scroll;
+}
