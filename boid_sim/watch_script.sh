@@ -3,8 +3,8 @@
 # TODO make this better
 
 # Configuration
-WATCH_DIR="./the_funny_way/go_boid_stuff/"  # Directory to monitor (relative or absolute path)
-BUILD_CMD="go build -C ./the_funny_way/go_boid_stuff/ -o ../dist/boid.wasm"  # Your build command here
+WATCH_DIR="./boid_sim/go_boid_stuff/"  # Directory to monitor (relative or absolute path)
+BUILD_CMD="go build -C ./boid_sim/go_boid_stuff/ -o ../dist/boid.wasm"  # Your build command here
 # BUILD_CMD="GOOS=js GOARCH=wasm go build -o ./boid.wasm"  # Your build command here
 # BUILD_CMD="echo what"  # Your build command here
 
