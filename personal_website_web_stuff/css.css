@@ -57,12 +57,69 @@ iframe {
 
 .site-header h1 {
     /* make my name a bit bigger */
-    font-size: 2.4rem;
+    font-size: 3rem;
 }
 
 
+/* the div that holds all sections. */
+div.sections {
+    /* how to space all sections. */
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+}
 
 
+section {
+    /* space between sections */
+    margin: 1rem;
+
+    /* border stuff. */
+    padding: 1.5rem;
+    padding-top: .5rem;
+    border-radius: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+
+    /* items in the section are flexbox layout. top to bottom, by default. */
+    display: flex;
+    flex-direction: column;
+
+    /* boid section was taller than expected. */
+    height: fit-content;
+}
+
+.section-headline h2 {
+    margin-top: .5rem;
+    font-size: 2.5rem;
+    /* background-color: red; */
+}
+
+
+/* footer {
+
+} */
+
+footer.site-footer {
+    font-size: 2rem;
+
+    /* display and spacing */
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-evenly;
+
+    padding: 1rem;
+
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+}
+
+
+/* TODO color? */
+footer.site-footer a {
+    color: orange;
+}
+footer.site-footer a:hover {
+    color: red;
+}
 
 
 
