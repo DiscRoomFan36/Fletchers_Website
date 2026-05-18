@@ -95,10 +95,6 @@ section {
 }
 
 
-/* footer {
-
-} */
-
 footer.site-footer {
     font-size: 2rem;
 
@@ -113,7 +109,7 @@ footer.site-footer {
 }
 
 
-/* TODO color? */
+/* TODO colors other than 'orange' and 'red'? */
 footer.site-footer a {
     color: orange;
 }
