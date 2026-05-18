@@ -3,13 +3,10 @@
 
 GO_COMPILER ?= go # tinygo
 
-# this makes a page for both the boids and the personal
-# website. although the website doesn't actually need
-# the boids to be served.
-full_watch_website_and_boids: boid.wasm supply_wasm_exec
-	make -j 3 watch_go_files serve_boid serve_personal_website
-
-# this one just makes the website.
+# to access the website, go to localhost:8080
+#
+# to access the boid sim, go to localhost:8080/boid_sim
+# yes it is that easy.
 serve_and_hotreload_website: boid.wasm supply_wasm_exec
 	make -j 2 watch_go_files serve_personal_website
 
@@ -35,8 +32,5 @@ supply_wasm_exec:
 	fi
 
 
-serve_boid:
-	python3 -m http.server 8080 --directory ./boid_sim
-
 serve_personal_website:
-	python3 -m http.server 8081
+	python3 -m http.server 8080
