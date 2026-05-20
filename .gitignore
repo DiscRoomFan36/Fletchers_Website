@@ -1,2 +1,3 @@
 
-boid_sim/dist/*.wat
+# no wat files, they are just for debugging.
+*.wat
