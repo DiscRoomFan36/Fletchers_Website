@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -17,23 +18,76 @@ const WAT_FILE_PATH  = "./boid_sim/dist/boid.wat";
 
 const BOID_SIM_GO_CODE_FOLDER = "./boid_sim/go_boid_stuff/";
 
-func main() {
-	// check_for_error(compile_boid_sim_to_wasm(), "compile_boid_sim_to_wasm");
-	// check_for_error(boid_wasm_to_wat(), "boid_wasm_to_wat");
-	// check_for_error(supply_wasm_exec_file(), "supply_wasm_exec_file");
 
-	// check_for_error(watch_go_files(BOID_SIM_GO_CODE_FOLDER, compile_boid_sim_to_wasm), "watch_go_files");
 
-	// check_for_error(serve_personal_website(), "serve_personal_website");
+type Command_Line_Flag struct {
+	name string;
 
-	// TODO use command line arguments to be more like a real makefile.
-	//
-	// Actually, the "flag" module doesn't look like its the right thing for me. gonna have to make my own thing.
-	//
-	// flag.
-
-	check_for_error(serve_and_hotreload_personal_website(), "serve_and_hotreload_personal_website");
+	function_for_command func() error;
 }
+
+var command_line_argument_flags = []Command_Line_Flag{
+	{
+		name: "compile_boid_sim_to_wasm",
+		function_for_command: compile_boid_sim_to_wasm,
+	},
+	{
+		name: "boid_wasm_to_wat",
+		function_for_command: boid_wasm_to_wat,
+	},
+	{
+		name: "supply_wasm_exec_file()",
+		function_for_command: supply_wasm_exec_file,
+	},
+	{
+		name: "watch_go_files",
+		function_for_command: func() error { return watch_go_files(BOID_SIM_GO_CODE_FOLDER, compile_boid_sim_to_wasm); },
+	},
+	{
+		name: "serve_personal_website",
+		function_for_command: serve_personal_website,
+	},
+	{
+		name: "serve_and_hotreload_personal_website",
+		function_for_command: serve_and_hotreload_personal_website,
+	},
+};
+
+
+func main() {
+	// signal handling code.
+	// TODO use this to stop things for running. might not be necessary.
+	//
+	// c := make(chan os.Signal);
+	// signal.Notify(c, os.Kill, os.Interrupt);
+	// <- c; // wait for a signal.
+	// signal.Stop(c);
+
+	args := os.Args[1:];
+
+	// if no command given, just serve the website.
+	if len(args) == 0 {
+		args = append(args, "serve_and_hotreload_personal_website");
+	}
+
+	// this runs the commands in the order they were given. not a lot of error checking.
+	for _, arg := range args {
+		index := slices.IndexFunc(command_line_argument_flags,
+			func(command Command_Line_Flag) bool { return arg == command.name; },
+		);
+
+		if index != -1 {
+			command := &command_line_argument_flags[index];
+			fmt.Printf("    running command '%s'\n", command.name);
+			check_for_error(command.function_for_command(), command.name);
+		} else {
+			// no command with name
+			log.Fatalf("unknown command '%s'\n", arg);
+			// TODO print help message.
+		}
+	}
+}
+
 
 
 func compile_boid_sim_to_wasm() error {
@@ -101,9 +155,9 @@ func supply_wasm_exec_file() error {
 }
 
 
-// watch the go folder, and trigger a compile if something changed
+// watch a folder, and trigger a function if something changed
 //
-// TODO we can give this parameters easily.
+// this function never returns
 func watch_go_files(folder_to_watch string, function_to_call func() error) error {
 
 	fmt.Printf("beginning watch of %s\n", folder_to_watch);
@@ -155,6 +209,7 @@ func watch_go_files(folder_to_watch string, function_to_call func() error) error
 	return nil;
 }
 
+// this function never returns
 func serve_personal_website() error {
 	fmt.Println("serving personal website on port 8080");
 
@@ -168,6 +223,7 @@ func serve_personal_website() error {
 	return http.ListenAndServe(":8080", fs);
 }
 
+// this function never returns
 func serve_and_hotreload_personal_website() error {
 
 	if err := supply_wasm_exec_file(); err != nil {
