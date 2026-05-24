@@ -230,6 +230,7 @@ func serve_and_hotreload_personal_website() error {
 		return fmt.Errorf("could not supply wasm_exec file, reason: %v", err);
 	}
 
+	// if this fails, we never reach the watch_go_files part. is this feature or a bug?
 	if err := compile_boid_sim_to_wasm(); err != nil {
 		return fmt.Errorf("could not compile boid sim to wasm, reason: %v", err);
 	}
