@@ -27,7 +27,13 @@ body {
 /* but in the future, plan to have more iframes, */
 /* like the sudoku one. */
 iframe {
-    border: none;
+    border:
+        0.5rem       /* size */
+        inset        /* style */
+        rgba(255, 255, 255, 0.5); /* color */
+    border-radius: 0.3rem;
+
+    /* no box shadow, doesn't look that good. */
 }
 
 
