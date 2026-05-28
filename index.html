@@ -7,28 +7,73 @@
         <!-- TODO replace this, Maybe a stylized 'F'? -->
 		<link rel="icon" type="image/png" href="./personal_website_web_stuff/icon.png" />
 		<link rel="stylesheet" href="./personal_website_web_stuff/css.css" />
+
+        <!-- use PrismJS for code highlighting. -->
+        <link href="./personal_website_web_stuff/PrismJS/prism.css" rel="stylesheet" />
 	</head>
 
     <body>
+        <script src="./personal_website_web_stuff/PrismJS/prism.js"></script>
+
+
         <header class="site-header">
-            <div class="site-header-content">
-                <h1>Fletcher Moloney</h1>
-                <!-- TODO is this a good subtitle? -->
-                <p class="subtitle">
-                    "I wish there was a better programming language than C, but no one seems to be making any." - Myself (2026)
+            <div class="site-header-content-div">
+                <h1 class="site-header-item">Fletcher Moloney</h1>
+
+                <p class="site-header-item subtitle">
+                    <!-- nice and simple, but maybe tells someone I spend all my time with C, is that the impression i want to make? -->
+                    Programmer and C Enthusiast
+
+                    <!-- this feels weird... -->
+                    <!-- Programmer and C Enjoyer -->
                 </p>
             </div>
         </header>
 
         <div class="sections">
 
+
             <section class="self-reflection-section">
                 <div class="section-headline self-reflection-headline">
-                    <h2>Self Reflection</h2>
+                    <h2>About Me</h2>
+                    <!-- probably not what some guy in HR wants to see. -->
                     <p>A look into my deepest darkest fears</p>
                 </div>
 
                 <!-- TODO everything here. -->
+
+                <ul>
+                    <li>
+                        Graduate of Computer Science
+                        <ul>
+                            <li> But learned most of what I know by doing it myself </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        Not someone who relies on dependencies to do anything.
+                        <ul>
+                            <li> If i can make something myself, i probably will. </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <!-- ? -->
+                        Python is bad and i wont use it.
+                    </li>
+
+                    <li>
+                        <!-- something about AI -->
+                        <!-- hard to strike a balance between "don't use it ever" and "i test it out sometimes." -->
+
+                        <!-- maybe something better than "Agentic"? -->
+                        I like AI single line autocomplete, but I stay away from full "Agentic" work (or whatever they are calling it these days)
+                    </li>
+                </ul>
+
+                <div>
+
+                </div>
 
                 <div>
                     A Fear of C++, its just got way to many features
@@ -43,11 +88,52 @@
                 </div>
             </section>
 
+
             <section class="boid-section">
                 <div class="section-headline boid-headline">
                     <h2>Boid Simulation</h2>
                     <p>In my weird wasm "game" engine, no javascript, only terrible golang -> wasm bindings. (its worse than you think)</p>
                 </div>
+
+                <div>
+                    Made with my custom "Game Engine" that allows it to run in wasm, without using any javascript.
+
+                    Here is the entire html of the page, in its raw form
+
+                    <!-- this is the only thing i put line numbers on. definitely works here. -->
+                    <pre><code id="boid_sim_raw_index_html" class="language-html line-numbers"></code></pre>
+                    <script>
+                        fetch('./boid_sim/index.html')
+                            .then(response => response.text())
+                            .then(text     => {
+                                const boid_sim_raw_index_html = document.getElementById('boid_sim_raw_index_html');
+                                // put the raw html onto the page.
+                                boid_sim_raw_index_html.textContent = text;
+                                // re-run the highlighter on this code.
+                                //
+                                // would not highlight without this as the
+                                // highlighter only runs once the page loads,
+                                // and this code is happening sometime after that.
+                                Prism.highlightElement(boid_sim_raw_index_html);
+                            });
+                    </script>
+
+                    The funny thing is, the slow part of this "Engine" is rendering, (as one might expect of a game engine), but the way its slow it weird. the slow part is calls like this:
+
+                    <pre><code class="language-go">js_render_context_2d.Call("fillRect", x, y, width, height);</code></pre>
+
+                    Or
+
+                    <!-- this is the only way to get the correct formatting... -->
+                    <pre><code class="language-go">js_render_context_2d.Call("beginPath");
+js_render_context_2d.Call("moveTo", x1, y1);
+js_render_context_2d.Call("lineTo", x2, y2);
+js_render_context_2d.Call("lineTo", x3, y3);
+js_render_context_2d.Call("closePath");
+js_render_context_2d.Call("fill");</code></pre>
+                </div>
+
+                <!-- TODO put ^ and v next to each other or something. -->
 
                 <iframe class="boid-iframe" src="./boid_sim/index.html" title="Boid Simulation" width="800" height="450" scrolling="no">
                     Your browser is not showing you a cool Boid simulation right now, because the &lt;iframe&gt; is broken.
@@ -55,24 +141,129 @@
             </section>
 
 
-            <section>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
-                <p> space filler </p>
+            <section class="Bested-section">
+                <div class="section-headline Bested-headline">
+                    <h2>Bested.h</h2>
+                    <p>My C header only library that I use in every C project I make</p>
+                </div>
+
+                <!-- "language-c" is automatically putting class="language-c" in every code block -->
+                <!-- We can do this because Bested.h is a C project, I don't expect any other languages in here. -->
+                <div class="language-c">
+                    the C programming language, in its base form, is one of the worst programming languages to program in.
+
+                    This single .h file is 3,000 lines of code. and makes programming in C much nicer, it includes things like:
+                    <ul>
+                        <li>
+                            Typedef'ing the <code>uint64_t</code> family of types to <code>u64</code>, this one change makes it so much nicer to work in c
+                            <ul>
+                                <li>
+                                    Just something as simple as this creates much better looking, (and more readable), code
+
+                                    <pre><code>// ===================================================
+//                    Classic Ints
+// ===================================================
+
+typedef uint64_t        u64;
+typedef uint32_t        u32;
+typedef uint16_t        u16;
+typedef uint8_t         u8;
+
+typedef int64_t         s64;
+typedef int32_t         s32;
+typedef int16_t         s16;
+typedef int8_t          s8;</code></pre>
+                                </li>
+
+                                <li>
+                                    There is no circumstance where you would want your <code>int</code> type to change based on platform.
+                                    <ul>
+                                        <li>
+                                            Way more bugs are solved by just not using <code>int</code>, that it creates.
+                                            <ul>
+                                                <li> If you have a performance issue, I promise you its not because your integer is the wrong size for the register. </li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <code>Arena</code> Allocator & <code>Arena_Pool</code>
+                            <ul>
+                                <li> 50% of all memory management issues can be solved with these 2 data structures </li>
+                                <li>
+                                    TODO a code example.
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            Dynamic & Type Safe Generic Arrays
+                            <ul>
+                                <li>
+                                    90% of the remaining memory management issues can be solved by putting a arena allocator onto an array
+
+                                    <ul><li>
+                                        <pre><code>// yes, this is valid C
+Array(s64) array = {};
+// now you never have to free this array!
+//
+// also there is some special code that makes growing the
+// array faster if certain conditions are met.
+array.allocator = &arena;</code></pre>
+                                    </li></ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            A Generic <code>Hash_Map(Key_Type, Value_Type)</code>
+                            <ul>
+                                <li>
+                                    A type safe <code>Hash_Map</code>
+
+                                    TODO code example
+                                </li>
+
+                                <li> Also has a settable allocator </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            The <code>String</code> type, With complimentary <code>String_Builder</code> for desert
+                            <ul>
+                                <li>Trying to do anything complicated with C-strings is an exersize in futillity (and its slow)</li>
+                                <li>
+                                    TODO code example
+                                </li>
+                                <li>
+                                    TODO temp_c_string_from_string() function example, or do that above this?
+                                </li>
+                                <li>
+                                    TODO String_Builder example
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+
+            <section class="Sudoku-section">
+                <div class="section-headline Sudoku-headline">
+                    <h2>Stylish Sudoku</h2>
+                    <p>A nice an stylish sudoku player, with some flair</p>
+                </div>
+
+                <div>
+                    TODO talk about the sudoku thing
+                </div>
+
+                <div>
+                    TODO put an iframe here to let you play sudoku.
+                </div>
             </section>
 
         </div>

@@ -55,15 +55,26 @@ iframe {
     text-align: center;
 }
 
-.site-header-context {
+.site-header-content-div {
     display: flex;
+    flex-direction: column;
+
     align-items: center;
     text-align: center;
+
+    margin: 1rem;
 }
 
-.site-header h1 {
+.site-header-item {
+    margin: 0;
+}
+
+.site-header-content h1 {
     /* make my name a bit bigger */
     font-size: 3rem;
+}
+.site-header-content .subtitle {
+    font-size: 1.75rem;
 }
 
 
