@@ -295,7 +295,37 @@ array.allocator = &arena;
 
 // you can also use a pool,
 // just remember to give it back later.
-array.allocator = Pool_Get();</code></pre>
+array.allocator = Pool_Get();
+
+{ // the array interface
+    // access an element
+    array.items[i];
+
+    // get the count
+    array.count;
+
+    Array_Append(&array, item);
+    Array_Insert(&array, index, item);
+
+    Array_Reserve(&array, num_to_reserve);
+
+    // remove and move.
+    Array_Remove(&array, index)
+    // the cooler remove
+    Array_Swap_And_Remove(&array, 3);
+
+    // iteration helper.
+    Array_For_Each(it, &array) {
+        // item index.
+        u64 index = it - array.items;
+        // remember `it` is a pointer to a s64
+        printf("%zu: %ld\n", index, *it);
+    }
+    // or do it yourself.
+    for (u64 i = 0; i < array.count; i++) {
+        s64 *item = array.items[i];
+    }
+}</code></pre>
                                         </li>
                                     </ul>
                                 </li>
