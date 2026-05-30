@@ -59,7 +59,6 @@
 
                     <li> <!-- show i can work in any language. (not things like python) -->
                         Willing to work in any programming language, Preferably statically typed and compiled languages
-
                         <ul>
                             <li> Typescript gets a pass though, much better than javascript </li>
                             <li> Absolutely not python though, it actively makes me program worse </li>
@@ -74,33 +73,23 @@
                     </li>
                 </ul>
 
-                <div>
-                    A Fear of C++, its just got way to many features
-
-                    like what even is a UFO operator? who are they kidding?
-                </div>
-
-                <div>
-                    A Fear of dependencies,
-
-                    I can explain the dependency chan of everything on this website, (with the exception of emscripten, and raylib), because I made everything.
-                </div>
             </section>
 
 
             <section class="boid-section">
                 <div class="section-headline boid-headline">
                     <h2>Boid Simulation</h2>
-                    <p>In my weird wasm "game" engine, no javascript, only terrible golang -> wasm bindings. (its worse than you think)</p>
+                    <p>In my weird wasm "game engine", no javascript, only terrible golang -> wasm bindings. (Its worse than you think)</p>
                 </div>
 
                 <div>
                     Made with my custom "Game Engine" that allows it to run in wasm, without using any javascript.
 
-                    Here is the entire html of the page, in its raw form
+                    Here is the entire html of the page, in its raw form:
 
                     <!-- this is the only thing i put line numbers on. definitely works here. -->
                     <pre><code id="boid_sim_raw_index_html" class="language-html line-numbers"></code></pre>
+                    <!-- script to highlight the html that just got loaded -->
                     <script>
                         fetch('./boid_sim/index.html')
                             .then(response => response.text())
@@ -117,19 +106,21 @@
                             });
                     </script>
 
-                    The funny thing is, the slow part of this "Engine" is rendering, (as one might expect of a game engine), but the way its slow it weird. the slow part is calls like this:
+                    <div>
+                        The funny thing is, the slow part of this simulation is rendering, (as one might expect of a game engine), but the way its slow it weird. the slow part is calls like this:
 
-                    <pre><code class="language-go">js_render_context_2d.Call("fillRect", x, y, width, height);</code></pre>
+                        <pre><code class="language-go">js_render_context_2d.Call("fillRect", x, y, width, height);</code></pre>
 
-                    Or
+                        Or
 
-                    <!-- this is the only way to get the correct formatting... -->
-                    <pre><code class="language-go">js_render_context_2d.Call("beginPath");
+                        <!-- this is the only way to get the correct formatting... -->
+                        <pre><code class="language-go">js_render_context_2d.Call("beginPath");
 js_render_context_2d.Call("moveTo", x1, y1);
 js_render_context_2d.Call("lineTo", x2, y2);
 js_render_context_2d.Call("lineTo", x3, y3);
 js_render_context_2d.Call("closePath");
 js_render_context_2d.Call("fill");</code></pre>
+                    </div>
                 </div>
 
                 <!-- TODO put ^ and v next to each other or something. -->
@@ -143,7 +134,7 @@ js_render_context_2d.Call("fill");</code></pre>
             <section class="Bested-section">
                 <div class="section-headline Bested-headline">
                     <h2>Bested.h</h2>
-                    <p>My C header only library that I use in every C project I make</p>
+                    <p>My C, single-header library that I use in every C/C++ project I make</p>
                 </div>
 
                 <!-- "language-c" is automatically putting class="language-c" in every code block -->
@@ -151,7 +142,7 @@ js_render_context_2d.Call("fill");</code></pre>
                 <div class="language-c">
                     the C programming language, in its base form, is one of the worst programming languages to program in.
 
-                    This single .h file is 3,000 lines of code. and makes programming in C much nicer, it includes things like:
+                    This single .h file is ~3,000 lines of code. and makes programming in C much nicer, it includes things like:
                     <ul>
                         <li>
                             Typedef'ing the <code>uint64_t</code> family of types to <code>u64</code>, this one change makes it so much nicer to work in c
@@ -178,7 +169,7 @@ typedef int8_t          s8;</code></pre>
                                     There is no circumstance where you would want your <code>int</code> type to change based on platform.
                                     <ul>
                                         <li>
-                                            Way more bugs are solved by just not using <code>int</code>, that it creates.
+                                            Way more problems are solved by just not using <code>int</code>, that it creates.
                                             <ul>
                                                 <li> If you have a performance issue, I promise you its not because your integer is the wrong size for the register. </li>
                                             </ul>
@@ -189,30 +180,124 @@ typedef int8_t          s8;</code></pre>
                         </li>
 
                         <li>
-                            <code>Arena</code> Allocator & <code>Arena_Pool</code>
+                            <code>Arena</code> Allocator & <code>Arena_Pool</code> for `Memory Management`
                             <ul>
-                                <li> 50% of all memory management issues can be solved with these 2 data structures </li>
+                                <li> 50% of all `Memory Management` issues can be solved with these 2 data structures </li>
                                 <li>
                                     TODO a code example.
+<pre><code>// Arena's are Zero initialized, this one is ready to go.
+Arena a = ZEROED;
+
+s64 *x   = Arena_Alloc(&a, sizeof(s64), .clear_to_zero = true);
+// not zero initialized.
+Foo *foo = Arena_Alloc_Struct(&a, Foo);
+
+// clears the arena, keeps the memory, all your pointers are dead now.
+Arena_Clear(&a);
+
+// A way to save the Arena's location, to reload back to later, (not that I even use this, I just use Arena_Clear())
+Arena_Mark mark = Arena_Get_Mark(&a);
+Arena_Set_To_Mark(&a, mark);
+
+{ // some special functions to change the behavior of the arena
+    // make the first page allocate some memory
+    Arena_Initialize_First_Page(&a, 10000);
+
+    // initialize the first page with known memory, who need's malloc.
+    //
+    // (local_persist is just static, but with a name that makes sense)
+    local_persist u8 buffer[1 << 16] = ZEROED;
+    Arena_Add_Buffer_As_Storage_Space(&a, buffer, sizeof(buffer));
+
+    // maybe you don't want any more space than what you just gave it?
+    a.panic_when_trying_to_allocate_new_page = true;
+}
+
+const char *hello = Arena_sprintf(&a, "Hello %s\n", "World");
+
+// yes, the arena dose in fact, allocate memory.
+//
+// probably never need to call this function, just let the OS handle the leak.
+Arena_Free(&a);
+
+////////////////////////////////////////////////////////////////////
+//
+// But in a lot of cases, you might:
+//     1. make an arena,
+//     2. allocate stuff,
+//     3. then free it.
+// the arena itself has a 1-to-1, allocate-to-free ratio,
+//
+// But what if there was a better way?
+//
+////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////
+//
+//                  Enter the Arena_Pool
+//
+////////////////////////////////////////////////////////////////////
+
+// ready to go.
+Arena_Pool pool = ZEROED;
+
+
+// just grab an arena, as many times as you want.
+// the pool itself can grow.
+//
+// tread safe
+Arena *a = Pool_Get(&pool);
+// tread safe
+Pool_Release(&pool, a);
+
+// arena b is probably arena a.
+Arena *b = Pool_Get(&pool);
+
+// All the memory in the program cleaned up!
+Pool_Free_Arenas(&pool);
+
+////////////////////////////////////////////////////////////////////
+//
+// But, in reality, allocating with arena's is kinda annoying, even with the pool.
+//
+// If only there was some kind of construct that could allocate many items at once?
+//
+////////////////////////////////////////////////////////////////////</code></pre>
                                 </li>
                             </ul>
                         </li>
 
                         <li>
-                            Dynamic & Type Safe Generic Arrays
+                            Dynamic & Type Safe Generic <code>Array</code>'s
                             <ul>
                                 <li>
-                                    90% of the remaining memory management issues can be solved by putting a arena allocator onto an array
+                                    90% of the remaining memory management issues can be solved by putting a <code>Arena</code> allocator onto an <code>Array</code>
 
-                                    <ul><li>
-                                        <pre><code>// yes, this is valid C
+                                    <ul>
+                                        <li>
+                                            <pre><code>// yes, this is valid C
+//
+// this is an array of signed 64-bit numbers!
 Array(s64) array = {};
+
+// typedef's allow you to pass these array into other functions!
+//
+// (you cant pass a Array(Foo) directly, fundamental problem with C)
+//
+// (also Array(Type) is a macro, macro's are cool.)
+typedef Array(Foo) Foo_Array;
+
 // now you never have to free this array!
 //
 // also there is some special code that makes growing the
 // array faster if certain conditions are met.
-array.allocator = &arena;</code></pre>
-                                    </li></ul>
+array.allocator = &arena;
+
+// you can also use a pool,
+// just remember to give it back later.
+array.allocator = Pool_Get();</code></pre>
+                                        </li>
+                                    </ul>
                                 </li>
                             </ul>
                         </li>
