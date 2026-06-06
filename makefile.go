@@ -67,6 +67,7 @@ func main() {
 
 	// if no command given, just serve the website.
 	if len(args) == 0 {
+		fmt.Println("No arguments given, running 'serve_and_hotreload'");
 		args = append(args, "serve_and_hotreload_personal_website");
 	}
 
