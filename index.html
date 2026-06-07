@@ -188,39 +188,17 @@ typedef int8_t          s8;</code></pre>
 <pre><code>// Arena's are Zero initialized, this one is ready to go.
 Arena a = ZEROED;
 
-s64 *x   = Arena_Alloc(&a, sizeof(s64), .clear_to_zero = true);
 // not zero initialized.
 Foo *foo = Arena_Alloc_Struct(&a, Foo);
 
 // clears the arena, keeps the memory, all your pointers are dead now.
 Arena_Clear(&a);
 
-// A way to save the Arena's location, to reload back to later, (not that I even use this, I just use Arena_Clear())
-Arena_Mark mark = Arena_Get_Mark(&a);
-Arena_Set_To_Mark(&a, mark);
-
-{ // some special functions to change the behavior of the arena
-    // make the first page allocate some memory
-    Arena_Initialize_First_Page(&a, 10000);
-
-    // initialize the first page with known memory, who need's malloc.
-    //
-    // (local_persist is just static, but with a name that makes sense)
-    local_persist u8 buffer[1 << 16] = ZEROED;
-    Arena_Add_Buffer_As_Storage_Space(&a, buffer, sizeof(buffer));
-
-    // maybe you don't want any more space than what you just gave it?
-    a.panic_when_trying_to_allocate_new_page = true;
-}
-
-const char *hello = Arena_sprintf(&a, "Hello %s\n", "World");
-
 // yes, the arena dose in fact, allocate memory.
 //
 // probably never need to call this function, just let the OS handle the leak.
 Arena_Free(&a);
 
-////////////////////////////////////////////////////////////////////
 //
 // But in a lot of cases, you might:
 //     1. make an arena,
@@ -230,13 +208,10 @@ Arena_Free(&a);
 //
 // But what if there was a better way?
 //
-////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////
 //
 //                  Enter the Arena_Pool
 //
-////////////////////////////////////////////////////////////////////
 
 // ready to go.
 Arena_Pool pool = ZEROED;
@@ -256,13 +231,11 @@ Arena *b = Pool_Get(&pool);
 // All the memory in the program cleaned up!
 Pool_Free_Arenas(&pool);
 
-////////////////////////////////////////////////////////////////////
 //
 // But, in reality, allocating with arena's is kinda annoying, even with the pool.
 //
 // If only there was some kind of construct that could allocate many items at once?
-//
-////////////////////////////////////////////////////////////////////</code></pre>
+//</code></pre>
                                 </li>
                             </ul>
                         </li>
@@ -273,9 +246,28 @@ Pool_Free_Arenas(&pool);
                                 <li>
                                     90% of the remaining memory management issues can be solved by putting a <code>Arena</code> allocator onto an <code>Array</code>
 
-                                    <ul>
-                                        <li>
-                                            <pre><code>// yes, this is valid C
+                                    <pre><code>//
+// Example:
+//   - make a variable
+//      Array(Foo) foo_array;
+//
+//   - make a type
+//      typedef Array(Bar) Bar_Array;
+//
+//   foo_array.items     = /* the array pointer */
+//   foo_array.count     = /* number of items in array */
+//   foo_array.capacity  = /* the capacity */
+//   foo_array.allocator = /* a settable arena allocator */
+//
+#define Array(Type)                         \
+    struct {                                \
+        Type *items;                        \
+        u64 count;                          \
+        u64 capacity;                       \
+        Arena *allocator;                   \
+    }
+
+// yes, this is valid C
 //
 // this is an array of signed 64-bit numbers!
 Array(s64) array = {};
@@ -287,47 +279,13 @@ Array(s64) array = {};
 // (also Array(Type) is a macro, macro's are cool.)
 typedef Array(Foo) Foo_Array;
 
-// now you never have to free this array!
-//
-// also there is some special code that makes growing the
-// array faster if certain conditions are met.
-array.allocator = &arena;
-
-// you can also use a pool,
-// just remember to give it back later.
-array.allocator = Pool_Get();
-
-{ // the array interface
-    // access an element
-    array.items[i];
-
-    // get the count
-    array.count;
-
-    Array_Append(&array, item);
-    Array_Insert(&array, index, item);
-
-    Array_Reserve(&array, num_to_reserve);
-
-    // remove and move.
-    Array_Remove(&array, index)
-    // the cooler remove
-    Array_Swap_And_Remove(&array, 3);
-
-    // iteration helper.
-    Array_For_Each(it, &array) {
-        // item index.
-        u64 index = it - array.items;
-        // remember `it` is a pointer to a s64
-        printf("%zu: %ld\n", index, *it);
-    }
-    // or do it yourself.
-    for (u64 i = 0; i < array.count; i++) {
-        s64 *item = array.items[i];
-    }
+// iteration helper.
+Array_For_Each(it, &array) {
+    // item index.
+    u64 index = it - array.items;
+    // remember `it` is a pointer to a s64
+    printf("%zu: %ld\n", index, *it);
 }</code></pre>
-                                        </li>
-                                    </ul>
                                 </li>
                             </ul>
                         </li>
@@ -336,28 +294,72 @@ array.allocator = Pool_Get();
                             A Generic <code>Hash_Map(Key_Type, Value_Type)</code>
                             <ul>
                                 <li>
+                                    <!-- do i need this line? the code speaks for itself... -->
                                     A type safe <code>Hash_Map</code>
 
-                                    TODO code example
+                                    <pre><code>//
+// Example:
+//   - make a variable:
+//     Hash_Map(u32, f32) id_to_percent_map = ZEROED;
+//
+//   - make a type:
+//     typedef Hash_Map(String, Baz) Baz_Hash_Map;
+//
+//   id_to_percent_map.count         = /* number of entries in hash map        */
+//   id_to_percent_map.hash_function = /* hash function to use for the key     */
+//   id_to_percent_map.eq_function   = /* equality function to use for the key */
+//   id_to_percent_map.allocator     = /* a settable arena allocator           */
+//   id_to_percent_map.default_value = /* the default value when you use Hash_Map_Get_Or_Default() and the key is not in the map */
+//
+// ```
+//     Hash_Map(s32, String) hash_map = {
+//         .hash_function = NULL, // the default hash function just takes
+//         .eq_function   = NULL, // the bytes of your type and hash's it.
+//
+//         .default_value = S("NO VALUE"), // a default value
+//     };
+//
+//    Hash_Map(String, s32) reverse_map = {
+//         .hash_function = Hash_Map_Hash_String, // some hash functions are provided for the String types,
+//         .eq_function   = Hash_Map_Eq_String,   // (as well as 'const char *' type, but who cares about that one.)
+//
+//         .default_value = 0, // by default this is already zero.
+//    };
+// ```
+//
+#define Hash_Map(Key_Type, Value_Type)      \
+    struct {                                \
+        struct {                            \
+            u64        hash;                \
+            Key_Type   key;                 \
+            Value_Type value;               \
+        } *entries;                         \
+                                            \
+        /* total number of alive items in hash_map */   \
+        u64 count;                          \
+        /* total number dead items in hash map */       \
+        u64 dead_count;                     \
+        u64 capacity;                       \
+                                            \
+        Hash_Function     hash_function;    \
+        Equality_Function eq_function;      \
+                                            \
+        /* Settable allocator */            \
+        Arena *allocator;                   \
+                                            \
+        /* Default value of new items */    \
+        Value_Type default_value;           \
+    }</code></pre>
                                 </li>
-
-                                <li> Also has a settable allocator </li>
                             </ul>
                         </li>
 
                         <li>
                             The <code>String</code> type, With complimentary <code>String_Builder</code> for desert
                             <ul>
-                                <li>Trying to do anything complicated with C-strings is an exersize in futillity (and its slow)</li>
-                                <li>
-                                    TODO code example
-                                </li>
-                                <li>
-                                    TODO temp_c_string_from_string() function example, or do that above this?
-                                </li>
-                                <li>
-                                    TODO String_Builder example
-                                </li>
+                                <li> Trying to do anything complicated with C-strings is an exercise in futility (and its slow) </li>
+                                <li> No code example because this is already extremely long </li>
+                                <li> temp_C_Str_From_String() function allows easy integration with standard library if you need any of those functions </li>
                             </ul>
                         </li>
                     </ul>
