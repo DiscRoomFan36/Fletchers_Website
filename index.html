@@ -267,17 +267,8 @@ Pool_Free_Arenas(&pool);
         Arena *allocator;                   \
     }
 
-// yes, this is valid C
-//
-// this is an array of signed 64-bit numbers!
-Array(s64) array = {};
-
-// typedef's allow you to pass these array into other functions!
-//
-// (you cant pass a Array(Foo) directly, fundamental problem with C)
-//
-// (also Array(Type) is a macro, macro's are cool.)
-typedef Array(Foo) Foo_Array;
+// an array of signed 64-bit numbers!
+Array(s64) array = ZEROED;
 
 // iteration helper.
 Array_For_Each(it, &array) {
