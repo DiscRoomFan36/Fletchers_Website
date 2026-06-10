@@ -82,13 +82,20 @@
                     <p>In my weird wasm "game engine", no javascript, only terrible golang -> wasm bindings. (Its worse than you think)</p>
                 </div>
 
-                <div>
-                    Made with my custom "Game Engine" that allows it to run in wasm, without using any javascript.
 
-                    Here is the entire html of the page, in its raw form:
+                <iframe class="boid-iframe" src="./boid_sim/index.html" title="Boid Simulation" width="800" height="450" scrolling="no">
+                    Your browser is not showing you a cool Boid simulation right now, because the &lt;iframe&gt; is broken.
+                </iframe>
+
+                <!-- TODO put ^ and v next to each other or something. -->
+
+                <div class="boid-text">
+                    <p> Made with my custom "Game Engine" that allows it to run in wasm, without using any javascript. </p>
+
+                    <p> Here is the entire html of the page, in its raw form: </p>
 
                     <!-- this is the only thing i put line numbers on. definitely works here. -->
-                    <pre><code id="boid_sim_raw_index_html" class="language-html line-numbers"></code></pre>
+                    <pre><code id="boid_sim_raw_index_html" data-wrap="true" class="language-html line-numbers"></code></pre>
                     <!-- script to highlight the html that just got loaded -->
                     <script>
                         fetch('./boid_sim/index.html')
@@ -107,11 +114,15 @@
                     </script>
 
                     <div>
-                        The funny thing is, the slow part of this simulation is rendering, (as one might expect of a game engine), but the way its slow it weird. the slow part is calls like this:
+                        <p>
+                            The funny thing is, the slow part of this simulation is rendering, (as one might expect of a game engine), but the way its slow it weird. the slow part is calls like this:
+                        </p>
+
+                        <!-- TODO put javascript code example next to this code. AKA "normal way" vs "my stupid way" -->
 
                         <pre><code class="language-go">js_render_context_2d.Call("fillRect", x, y, width, height);</code></pre>
 
-                        Or
+                        <p> Or </p>
 
                         <!-- this is the only way to get the correct formatting... -->
                         <pre><code class="language-go">js_render_context_2d.Call("beginPath");
@@ -120,14 +131,10 @@ js_render_context_2d.Call("lineTo", x2, y2);
 js_render_context_2d.Call("lineTo", x3, y3);
 js_render_context_2d.Call("closePath");
 js_render_context_2d.Call("fill");</code></pre>
+
+                        <p> As you can imagine, this dose not lead to good performance. </p>
                     </div>
                 </div>
-
-                <!-- TODO put ^ and v next to each other or something. -->
-
-                <iframe class="boid-iframe" src="./boid_sim/index.html" title="Boid Simulation" width="800" height="450" scrolling="no">
-                    Your browser is not showing you a cool Boid simulation right now, because the &lt;iframe&gt; is broken.
-                </iframe>
             </section>
 
 
@@ -150,11 +157,7 @@ js_render_context_2d.Call("fill");</code></pre>
                                 <li>
                                     Just something as simple as this creates much better looking, (and more readable), code
 
-                                    <pre><code>// ===================================================
-//                    Classic Ints
-// ===================================================
-
-typedef uint64_t        u64;
+                                    <pre><code>typedef uint64_t        u64;
 typedef uint32_t        u32;
 typedef uint16_t        u16;
 typedef uint8_t         u8;
@@ -162,7 +165,10 @@ typedef uint8_t         u8;
 typedef int64_t         s64;
 typedef int32_t         s32;
 typedef int16_t         s16;
-typedef int8_t          s8;</code></pre>
+typedef int8_t          s8;
+
+typedef float           f32;
+typedef double          f64;</code></pre>
                                 </li>
 
                                 <li>
@@ -182,10 +188,10 @@ typedef int8_t          s8;</code></pre>
                         <li>
                             <code>Arena</code> Allocator & <code>Arena_Pool</code> for `Memory Management`
                             <ul>
-                                <li> 50% of all `Memory Management` issues can be solved with these 2 data structures </li>
                                 <li>
-                                    TODO a code example.
-<pre><code>// Arena's are Zero initialized, this one is ready to go.
+                                    50% of all `Memory Management` issues can be solved with these 2 data structures
+
+                                    <pre><code>// Arena's are Zero initialized, this one is ready to go.
 Arena a = ZEROED;
 
 // not zero initialized.
@@ -285,9 +291,6 @@ Array_For_Each(it, &array) {
                             A Generic <code>Hash_Map(Key_Type, Value_Type)</code>
                             <ul>
                                 <li>
-                                    <!-- do i need this line? the code speaks for itself... -->
-                                    A type safe <code>Hash_Map</code>
-
                                     <pre><code>//
 // Example:
 //   - make a variable:
@@ -358,8 +361,8 @@ Array_For_Each(it, &array) {
             </section>
 
 
-            <section class="Sudoku-section">
-                <div class="section-headline Sudoku-headline">
+            <section class="sudoku-section">
+                <div class="section-headline sudoku-headline">
                     <h2>Stylish Sudoku</h2>
                     <p>A nice an stylish sudoku player, with some flair</p>
                 </div>

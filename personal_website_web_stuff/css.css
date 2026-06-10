@@ -7,10 +7,6 @@
 }
 
 
-/* variables */
-/* :root {
-} */
-
 body {
     background-color: #2a3352;
 
@@ -34,8 +30,13 @@ iframe {
     border-radius: 0.3rem;
 
     /* no box shadow, doesn't look that good. */
+
+    /* always looks better in the center. */
+    align-self: center;
 }
 
+
+/* ---------------------- Header ---------------------- */
 
 .site-header {
     display: flex;
@@ -78,6 +79,8 @@ iframe {
 }
 
 
+/* ---------------------- Sections (Global) ---------------------- */
+
 /* the div that holds all sections. */
 div.sections {
     /* how to space all sections. */
@@ -89,7 +92,7 @@ div.sections {
 
 section {
     /* space between sections */
-    margin: 1rem;
+    margin: 0.5rem;
 
     /* border stuff. */
     padding: 1.5rem;
@@ -103,14 +106,104 @@ section {
 
     /* boid section was taller than expected. */
     height: fit-content;
+
+    /* min-width: min-content; */
+    /* width: fit-content; */
+    min-width: min-content;
+    width: fit-content;
+    /* width: 45%; */
 }
 
 .section-headline h2 {
     margin-top: .5rem;
+    margin-bottom: 0;
     font-size: 2.5rem;
     /* background-color: red; */
 }
 
+.section-headline p {
+    margin-top: 0.5rem;
+    font-size: 1.5rem;
+}
+
+
+/* we want margins between ul's, but not on the top ul */
+ul {
+    margin-bottom: 0;
+}
+ul li ul {
+    margin-bottom: 1rem;
+}
+
+li {
+    /* separate the items a little bit. */
+    margin: 0.2rem;
+}
+
+
+/* css to make the <code> sections look good. */
+
+/* the following code is AI generated: */
+/* Im quarantining it */
+/* ------------------------------------------------ */
+
+/* target code when language class is on the <code> element */
+code[class*="language-"] {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+
+/* if using line-numbers plugin, the plugin looks for the class on <pre>;
+   move the class to <pre> or add a matching class on <pre> as well */
+pre.line-numbers, code.line-numbers {
+    /* keep scroll for line numbers */
+    overflow-x: auto;
+}
+/* ------------------------------------------------ */
+
+
+
+
+/* ---------------------- Sections (Specific) ---------------------- */
+
+.self-reflection-section {
+    /* background-color: red; */
+    /* min-width: none; */
+    /* min-width: min-content; */
+    /* width: 40%; */
+    width: 30rem;
+}
+
+.boid-section {
+    /* just slightly bigger than the iframe */
+    width: 850px;
+}
+
+.Bested-section {
+    min-width: auto;
+    width: 45rem;
+}
+
+
+/* ---------------------- Sections (Size Info) ---------------------- */
+
+.self-reflection-section, .sudoku-section {
+    flex-grow: 1;
+}
+
+.boid-section, .Bested-section {
+    flex-grow: 1.5;
+    /* flex-grow: 2; */
+}
+
+
+
+
+
+
+/* ---------------------- Footer ---------------------- */
 
 footer.site-footer {
     font-size: 2rem;
