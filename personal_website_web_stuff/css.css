@@ -36,6 +36,17 @@ iframe {
 }
 
 
+/* Links */
+
+/* TODO colors other than 'orange' and 'red'? */
+a {
+    color: orange;
+}
+a:hover {
+    color: red;
+}
+
+
 /* ---------------------- Header ---------------------- */
 
 .site-header {
@@ -217,16 +228,6 @@ footer.site-footer {
 
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
 }
-
-
-/* TODO colors other than 'orange' and 'red'? */
-footer.site-footer a {
-    color: orange;
-}
-footer.site-footer a:hover {
-    color: red;
-}
-
 
 
 
