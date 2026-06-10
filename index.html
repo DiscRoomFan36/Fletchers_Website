@@ -186,6 +186,48 @@ typedef double          f64;</code></pre>
                         </li>
 
                         <li>
+                            A Cool Control flow Trick
+
+                            <ul>
+                                <li>
+                                    <pre><code>//
+// control flow helper,
+//
+// allows you to call 2 functions,
+// one at the start of a scope, one at the end.
+// while being able to put them next to each other.
+// Increases binding energy.
+//
+#define Defer_Scope(init, deinit)       \
+    for (int __i = ((init), 0); __i != 1; __i = 1, (deinit))
+
+// Examples:
+
+// holding a mutex
+Defer_Scope(Hold_Mutex(&mutex), Release_Mutex(&mutex)) {
+    // mutex stuff
+}
+
+//
+// A Raylib example:
+
+Defer_Scope(BeginCameraMode(camera), EndCameraMode()) {
+    // drawing into camera
+}
+// or a cool macro version
+#define Camera_Mode_Scope(camera)       \
+    Defer_Scope(BeginCameraMode(camera), EndCameraMode())
+
+Camera_Mode_Scope(camera) {
+    // drawing into camera
+}
+
+// lots of raylib functions are nicer to work with, with this.</code></pre>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
                             <code>Arena</code> Allocator & <code>Arena_Pool</code> for `Memory Management`
                             <ul>
                                 <li>
